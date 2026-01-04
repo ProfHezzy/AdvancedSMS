@@ -1,174 +1,181 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
+    MessageSquare,
     Send,
     Search,
     User,
-    MessageSquare,
-    Plus,
-    Phone,
-    Video,
-    Info,
-    MoreVertical,
-    CheckCheck,
-    Clock
+    Users
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export default function MessagesPage() {
-    const [activeChat, setActiveChat] = useState<string | null>('1');
-    const [newMessage, setNewMessage] = useState('');
+    const [selectedConversation, setSelectedConversation] = useState<any>(null);
+    const [messageText, setMessageText] = useState('');
 
-    // Mock contacts
-    const contacts = [
-        { id: '1', name: 'John Smith (Parent)', role: 'Parent', lastMessage: 'Thank you for the update on John.', time: '10:30 AM', unread: 0, status: 'online' },
-        { id: '2', name: 'Mrs. Adebayo (Principal)', role: 'Principal', lastMessage: 'Please review the staff memo.', time: 'Yesterday', unread: 2, status: 'away' },
-        { id: '3', name: 'David Jones (Math)', role: 'Teacher', lastMessage: 'The project guidelines are ready.', time: 'Jan 02', unread: 0, status: 'offline' },
+    const conversations = [
+        {
+            id: '1',
+            name: 'Mrs. Adeyemi (Parent)',
+            type: 'parent',
+            lastMessage: 'Thank you for the update on Chioma\'s progress.',
+            timestamp: '2 hours ago',
+            unread: 2,
+            avatar: 'Mrs-Adeyemi'
+        },
+        {
+            id: '2',
+            name: 'David Okafor (Student)',
+            type: 'student',
+            lastMessage: 'Can I submit my assignment tomorrow?',
+            timestamp: '1 day ago',
+            unread: 0,
+            avatar: 'David'
+        },
+        {
+            id: '3',
+            name: 'Mr. Ibrahim (Parent)',
+            type: 'parent',
+            lastMessage: 'I would like to discuss Sarah\'s attendance.',
+            timestamp: '3 days ago',
+            unread: 1,
+            avatar: 'Mr-Ibrahim'
+        },
     ];
 
-    // Mock messages for active chat
-    const messages = [
-        { id: '1', senderId: 'teacher-1', content: 'Hello Mr. Smith, just wanted to inform you that John did exceptionally well in the recent Mathematics quiz.', time: '10:15 AM', status: 'read' },
-        { id: '2', senderId: '1', content: 'That is great news! Thank you for the update on John. He has been studying hard lately.', time: '10:30 AM', status: 'read' },
-        { id: '3', senderId: 'teacher-1', content: 'You are welcome. We will keep encouraging him. Please ensure he completes the weekend assignment.', time: '10:35 AM', status: 'sent' },
-    ];
+    const messages = selectedConversation ? [
+        { id: '1', sender: 'them', text: 'Good morning, I wanted to discuss my child\'s recent test results.', time: '10:30 AM' },
+        { id: '2', sender: 'me', text: 'Good morning! I\'d be happy to discuss that. Your child scored 85% on the recent mathematics test.', time: '10:35 AM' },
+        { id: '3', sender: 'them', text: 'Thank you for the update on Chioma\'s progress.', time: '10:40 AM' },
+    ] : [];
 
     return (
-        <div className="h-[calc(100vh-8rem)] flex animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {/* Sidebar / Contact List */}
-            <div className="w-80 border-r border-white/10 glass flex flex-col">
-                <div className="p-6 border-b border-white/10 space-y-4">
-                    <div className="flex justify-between items-center">
-                        <h2 className="text-xl font-bold">Messages</h2>
-                        <Button size="icon" variant="ghost" className="h-8 w-8 text-brand-600 hover:bg-brand-50">
-                            <Plus className="w-4 h-4" />
-                        </Button>
-                    </div>
-                    <div className="relative">
-                        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                        <Input className="pl-9 h-10 border-white/10 glass text-sm" placeholder="Search contacts..." />
-                    </div>
-                </div>
-                <div className="flex-1 overflow-y-auto divide-y divide-white/5">
-                    {contacts.map((contact) => (
-                        <div
-                            key={contact.id}
-                            className={`p-4 flex gap-3 cursor-pointer transition-colors ${activeChat === contact.id ? 'bg-brand-50/50' : 'hover:bg-white/5'}`}
-                            onClick={() => setActiveChat(contact.id)}
-                        >
-                            <div className="relative shrink-0">
-                                <div className="w-12 h-12 rounded-xl bg-brand-100 flex items-center justify-center text-brand-700 font-bold text-lg">
-                                    {contact.name.charAt(0)}
-                                </div>
-                                <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${contact.status === 'online' ? 'bg-green-500' : contact.status === 'away' ? 'bg-amber-500' : 'bg-gray-400'
-                                    }`} />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <div className="flex justify-between items-baseline">
-                                    <p className={`font-semibold truncate ${activeChat === contact.id ? 'text-brand-950' : ''}`}>{contact.name}</p>
-                                    <span className="text-[10px] text-muted-foreground uppercase">{contact.time}</span>
-                                </div>
-                                <p className="text-xs text-muted-foreground truncate">{contact.lastMessage}</p>
-                            </div>
-                            {contact.unread > 0 && (
-                                <div className="w-5 h-5 rounded-full bg-brand-600 text-white text-[10px] flex items-center justify-center font-bold">
-                                    {contact.unread}
-                                </div>
-                            )}
-                        </div>
-                    ))}
-                </div>
+        <div className="p-8 space-y-8 animate-fade-in text-gray-900">
+            <div>
+                <h1 className="text-4xl font-black bg-gradient-to-r from-brand-600 to-brand-800 bg-clip-text text-transparent uppercase tracking-tight">
+                    Messages
+                </h1>
+                <p className="text-muted-foreground mt-2 font-medium">
+                    Communicate with parents and students.
+                </p>
             </div>
 
-            {/* Chat Area */}
-            <div className="flex-1 flex flex-col bg-white/30 backdrop-blur-sm">
-                {activeChat ? (
-                    <>
-                        {/* Chat Header */}
-                        <div className="p-4 border-b border-white/10 glass flex justify-between items-center px-8">
-                            <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-xl bg-brand-100 flex items-center justify-center text-brand-700 font-bold">
-                                    {contacts.find(c => c.id === activeChat)?.name.charAt(0)}
-                                </div>
-                                <div>
-                                    <p className="font-bold">{contacts.find(c => c.id === activeChat)?.name}</p>
-                                    <p className="text-xs text-green-600 font-medium">Online</p>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Button size="icon" variant="ghost" className="text-muted-foreground hover:text-brand-600"><Phone className="w-4 h-4" /></Button>
-                                <Button size="icon" variant="ghost" className="text-muted-foreground hover:text-brand-600"><Video className="w-4 h-4" /></Button>
-                                <Button size="icon" variant="ghost" className="text-muted-foreground hover:text-brand-600"><Info className="w-4 h-4" /></Button>
-                                <Button size="icon" variant="ghost" className="text-muted-foreground hover:text-brand-600"><MoreVertical className="w-4 h-4" /></Button>
-                            </div>
-                        </div>
-
-                        {/* Messages Feed */}
-                        <div className="flex-1 overflow-y-auto p-8 space-y-6">
-                            {messages.map((msg) => {
-                                const isMe = msg.senderId === 'teacher-1';
-                                return (
-                                    <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                                        <div className={`max-w-[70%] space-y-1 ${isMe ? 'items-end' : 'items-start'}`}>
-                                            <div className={`p-4 rounded-2xl shadow-sm ${isMe
-                                                    ? 'bg-brand-600 text-white rounded-tr-none'
-                                                    : 'bg-white glass text-gray-800 rounded-tl-none border-white/20'
-                                                }`}>
-                                                <p className="text-sm leading-relaxed">{msg.content}</p>
-                                            </div>
-                                            <div className="flex items-center gap-2 px-1">
-                                                <span className="text-[10px] text-muted-foreground uppercase">{msg.time}</span>
-                                                {isMe && (
-                                                    msg.status === 'read'
-                                                        ? <CheckCheck className="w-3 h-3 text-brand-500" />
-                                                        : <Clock className="w-3 h-3 text-muted-foreground" />
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-
-                        {/* Message Input */}
-                        <div className="p-6 border-t border-white/10 glass">
-                            <div className="flex gap-4 items-center max-w-5xl mx-auto">
-                                <div className="flex-1 relative">
-                                    <textarea
-                                        className="w-full h-12 py-3 px-4 glass border-white/20 rounded-xl outline-none focus:ring-2 focus:ring-brand-500 text-sm resize-none pr-12 shadow-inner"
-                                        placeholder="Type your message..."
-                                        value={newMessage}
-                                        onChange={(e) => setNewMessage(e.target.value)}
-                                        onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), setNewMessage(''))}
-                                    />
-                                    <Button variant="ghost" size="icon" className="absolute right-2 top-1/2 -translate-y-1/2 text-brand-600">
-                                        😀
-                                    </Button>
-                                </div>
-                                <Button
-                                    className="h-12 w-12 rounded-xl bg-brand-600 hover:bg-brand-700 text-white shadow-lg shrink-0"
-                                    onClick={() => setNewMessage('')}
-                                    disabled={!newMessage}
-                                >
-                                    <Send className="w-5 h-5" />
-                                </Button>
-                            </div>
-                        </div>
-                    </>
-                ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-4">
-                        <div className="w-20 h-20 bg-brand-50 rounded-full flex items-center justify-center">
-                            <MessageSquare className="w-10 h-10 text-brand-600" />
-                        </div>
-                        <div>
-                            <h3 className="text-xl font-bold">Select a conversation</h3>
-                            <p className="text-muted-foreground">Choose a contact from the left to start messaging.</p>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-300px)]">
+                {/* Conversations List */}
+                <Card className="glass border-none shadow-soft overflow-hidden flex flex-col">
+                    <div className="p-4 border-b border-gray-100 bg-white/50">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <Input
+                                placeholder="Search conversations..."
+                                className="h-10 pl-9 pr-4 rounded-lg border-gray-200 text-sm font-medium"
+                            />
                         </div>
                     </div>
-                )}
+                    <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                        {conversations.map((conv) => (
+                            <div
+                                key={conv.id}
+                                onClick={() => setSelectedConversation(conv)}
+                                className={cn(
+                                    "p-3 rounded-xl cursor-pointer transition-colors flex items-start gap-3",
+                                    selectedConversation?.id === conv.id ? "bg-brand-50 border border-brand-100" : "hover:bg-gray-50 border border-transparent"
+                                )}
+                            >
+                                <Avatar className="w-10 h-10 border border-white">
+                                    <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${conv.avatar}`} />
+                                    <AvatarFallback>{conv.name[0]}</AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between mb-1">
+                                        <p className="font-bold text-sm text-gray-900 truncate">{conv.name}</p>
+                                        {conv.unread > 0 && (
+                                            <Badge className="bg-brand-600 text-white hover:bg-brand-600 text-xs h-5 min-w-[20px] px-1">
+                                                {conv.unread}
+                                            </Badge>
+                                        )}
+                                    </div>
+                                    <p className="text-xs text-gray-500 truncate font-medium">{conv.lastMessage}</p>
+                                    <p className="text-[10px] text-gray-400 mt-1 font-medium">{conv.timestamp}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </Card>
+
+                {/* Message Thread */}
+                <Card className="lg:col-span-2 glass border-none shadow-soft overflow-hidden flex flex-col">
+                    {selectedConversation ? (
+                        <>
+                            <div className="p-4 border-b border-gray-100 bg-white/50 flex items-center gap-3">
+                                <Avatar className="w-10 h-10 border border-white">
+                                    <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedConversation.avatar}`} />
+                                    <AvatarFallback>{selectedConversation.name[0]}</AvatarFallback>
+                                </Avatar>
+                                <div>
+                                    <p className="font-bold text-gray-900">{selectedConversation.name}</p>
+                                    <div className="flex items-center gap-1 text-xs text-gray-500">
+                                        {selectedConversation.type === 'parent' ? <User className="w-3 h-3" /> : <Users className="w-3 h-3" />}
+                                        <span className="font-medium capitalize">{selectedConversation.type}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/50">
+                                {messages.map((msg) => (
+                                    <div
+                                        key={msg.id}
+                                        className={cn(
+                                            "flex",
+                                            msg.sender === 'me' ? "justify-end" : "justify-start"
+                                        )}
+                                    >
+                                        <div className={cn(
+                                            "max-w-[70%] p-3 rounded-2xl",
+                                            msg.sender === 'me'
+                                                ? "bg-brand-600 text-white rounded-br-sm"
+                                                : "bg-white border border-gray-200 text-gray-900 rounded-bl-sm"
+                                        )}>
+                                            <p className="text-sm font-medium">{msg.text}</p>
+                                            <p className={cn(
+                                                "text-[10px] mt-1 font-medium",
+                                                msg.sender === 'me' ? "text-brand-100" : "text-gray-400"
+                                            )}>
+                                                {msg.time}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="p-4 border-t border-gray-100 bg-white/50">
+                                <div className="flex gap-2">
+                                    <Textarea
+                                        placeholder="Type your message..."
+                                        value={messageText}
+                                        onChange={(e) => setMessageText(e.target.value)}
+                                        className="min-h-[60px] resize-none font-medium"
+                                    />
+                                    <Button className="h-[60px] px-6 bg-brand-600 hover:bg-brand-700 text-white font-black rounded-xl">
+                                        <Send className="w-5 h-5" />
+                                    </Button>
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="flex-1 flex items-center justify-center text-center p-8">
+                            <div>
+                                <MessageSquare className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                <p className="text-gray-400 font-medium">Select a conversation to start messaging</p>
+                            </div>
+                        </div>
+                    )}
+                </Card>
             </div>
         </div>
     );

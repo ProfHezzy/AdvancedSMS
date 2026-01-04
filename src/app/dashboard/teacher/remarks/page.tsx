@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 
 export default function StudentRemarksPage() {
     const [selectedStudent, setSelectedStudent] = useState<number | null>(null);
@@ -117,7 +118,10 @@ export default function StudentRemarksPage() {
                                 </div>
 
                                 <div className="pt-4 flex justify-end">
-                                    <Button className="h-12 px-8 bg-black text-white font-black rounded-xl hover:bg-gray-900 btn-shine gap-2 shadow-lg">
+                                    <Button
+                                        onClick={() => toast.success('Remark saved successfully!')}
+                                        className="h-12 px-8 bg-black text-white font-black rounded-xl hover:bg-gray-900 btn-shine gap-2 shadow-lg"
+                                    >
                                         <Save className="w-4 h-4" /> Save Remark
                                     </Button>
                                 </div>

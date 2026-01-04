@@ -98,7 +98,7 @@ export default function LoginPage() {
                 </Card>
 
                 <p className="text-center text-white/80 text-sm mt-6">
-                    © 2026 Advanced School Management System
+                    © 2026 Advanced School Management System By ProfHezzy
                 </p>
             </div>
         </div>

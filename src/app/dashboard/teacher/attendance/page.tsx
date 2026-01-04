@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 
 export default function AttendancePage() {
     const [students, setStudents] = useState([
@@ -51,7 +52,10 @@ export default function AttendancePage() {
                     <Button variant="outline" className="h-12 border-brand-200 text-brand-700 font-bold gap-2">
                         <CalendarIcon className="w-4 h-4" /> {new Date().toLocaleDateString()}
                     </Button>
-                    <Button className="h-12 px-6 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-black shadow-lg shadow-brand-600/20 gap-2 btn-shine">
+                    <Button
+                        onClick={() => toast.success('Attendance register saved successfully!')}
+                        className="h-12 px-6 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-black shadow-lg shadow-brand-600/20 gap-2 btn-shine"
+                    >
                         <Save className="w-4 h-4" /> Save Register
                     </Button>
                 </div>
