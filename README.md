@@ -142,7 +142,8 @@ Built with **Next.js 16** and **Shadcn UI**, ASMS offers a premium, glassmorphis
 ## 👥 Authors & Maintainers
 
 **Hezekiah Olawale Ojenike**  
-**hezekiaholawalejenike@gmail.com**
+**hezekiahonline94@gmail.com**
+**+234-814-027-2765**
 
 - **Product Vision:** Cross-functional Enterprise Team
 - **Development:** Full-Stack Engineering Division
