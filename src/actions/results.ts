@@ -8,36 +8,10 @@ import { v4 as uuidv4 } from 'uuid';
  * Assessment & Exam Management
  */
 
-export async function createAssessment(data: {
-    title: string;
-    description?: string;
-    type: 'ASSIGNMENT' | 'PROJECT' | 'TEST' | 'EXAM';
-    subjectId: string;
-    classId: string;
-    teacherId: string;
-    dueDate?: Date;
-    maxScore?: number;
-}) {
-    try {
-        const assessment = await prisma.assessment.create({
-            data: {
-                ...data,
-                token: data.type === 'EXAM' ? uuidv4().slice(0, 8).toUpperCase() : null
-            }
-        });
-
-        revalidatePath('/dashboard/teacher/assessments');
-        return { success: true, data: assessment };
-    } catch (error) {
-        console.error('Failed to create assessment:', error);
-        return { success: false, error: 'Failed to create assessment.' };
-    }
-}
-
 export async function generateExamToken(assessmentId: string) {
     try {
         const token = uuidv4().slice(0, 8).toUpperCase();
-        await prisma.assessment.update({
+        await (prisma as any).assessment.update({
             where: { id: assessmentId },
             data: { token }
         });
@@ -147,8 +121,8 @@ export async function getStudentReport(studentId: string, termId: string) {
 
 export async function getRecentAssessments(roleId: string, isTeacher: boolean) {
     try {
-        const assessments = await prisma.assessment.findMany({
-            where: isTeacher ? { teacherId: roleId } : { class: { students: { some: { id: roleId } } } },
+        const assessments = await (prisma as any).assessment.findMany({
+            where: isTeacher ? { teacher: { userId: roleId } } : { class: { students: { some: { userId: roleId } } } },
             include: {
                 subject: true,
                 class: true

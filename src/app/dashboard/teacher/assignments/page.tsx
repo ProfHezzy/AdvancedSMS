@@ -11,7 +11,8 @@ import {
     BookOpen,
     Eye,
     Trash2,
-    CheckCircle2
+    CheckCircle2,
+    Settings
 } from 'lucide-react';
 import Link from 'next/link';
 import { getAssessmentsByTeacher, deleteAssessment } from '@/actions/assessments';
@@ -117,7 +118,13 @@ export default function TeacherAssignmentsPage() {
                                     <Button variant="outline" className="h-10 px-4 rounded-xl border-brand-100 text-brand-600 font-bold hover:bg-brand-50" asChild>
                                         <Link href={`/dashboard/teacher/assignments/${assign.id}/submissions`}>
                                             <Eye className="w-4 h-4 mr-2" />
-                                            View Submissions
+                                            Submissions
+                                        </Link>
+                                    </Button>
+                                    <Button variant="outline" className="h-10 px-4 rounded-xl border-brand-100 text-brand-700 font-bold hover:bg-brand-50" asChild>
+                                        <Link href={`/dashboard/teacher/assessments/${assign.id}/questions`}>
+                                            <Settings className="w-4 h-4 mr-2" />
+                                            Questions
                                         </Link>
                                     </Button>
                                     <Button

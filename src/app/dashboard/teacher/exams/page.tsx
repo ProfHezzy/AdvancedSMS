@@ -14,11 +14,13 @@ import {
     AlertTriangle,
     BadgeCheck,
     Search,
-    RefreshCw
+    RefreshCw,
+    Settings
 } from 'lucide-react';
-import { createAssessment, generateExamToken, getRecentAssessments } from '@/actions/results';
+import { generateExamToken, getRecentAssessments } from '@/actions/results';
 import { getTeacherClasses } from '@/actions/academic';
 import { useSession } from 'next-auth/react';
+import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -193,6 +195,12 @@ export default function TeacherExamsPage() {
                                                     </div>
                                                 )}
                                                 <div className="flex gap-2">
+                                                    <Button variant="outline" className="h-10 px-4 rounded-xl border-brand-100 text-brand-700 font-bold hover:bg-brand-50" asChild>
+                                                        <Link href={`/dashboard/teacher/assessments/${exam.id}/questions`}>
+                                                            <Settings className="w-4 h-4 mr-2" />
+                                                            Manage Questions
+                                                        </Link>
+                                                    </Button>
                                                     <Button variant="ghost" className="text-brand-600 font-bold gap-1 hover:bg-brand-50 px-4">
                                                         Edit Details <ChevronRight className="w-4 h-4" />
                                                     </Button>

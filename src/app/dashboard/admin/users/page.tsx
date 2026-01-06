@@ -81,14 +81,14 @@ export default function AdminUserManagementPage() {
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </div>
-                <div className="flex bg-white/50 backdrop-blur p-1 rounded-xl border border-brand-100 shadow-soft">
-                    {['ALL', 'ADMIN', 'TEACHER', 'STUDENT', 'PARENT'].map((r) => (
+                <div className="flex flex-wrap bg-white/50 backdrop-blur p-1 rounded-xl border border-brand-100 shadow-soft gap-1">
+                    {['ALL', 'ADMIN', 'TEACHER', 'STUDENT', 'PARENT', 'HR', 'MEDICAL', 'SECURITY', 'ACCOUNTANT'].map((r) => (
                         <Button
                             key={r}
                             variant={filter === r ? 'default' : 'ghost'}
                             size="sm"
                             className={cn(
-                                "rounded-lg font-bold px-4 h-10 tracking-widest text-[10px]",
+                                "rounded-lg font-bold px-3 h-10 tracking-widest text-[10px]",
                                 filter === r && "bg-brand-600 text-white shadow-md hover:bg-brand-700"
                             )}
                             onClick={() => setFilter(r)}

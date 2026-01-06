@@ -7,24 +7,11 @@ import { Input } from '@/components/ui/input';
 import { Search, Save, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { saveResults } from '@/actions/results';
 
-// Mock data for initial selection - in a real app these would be fetched
-const mockClasses = [
-    { id: '1', name: 'JSS 1 A' },
-    { id: '2', name: 'JSS 1 B' },
-];
-
-const mockSubjects = [
-    { id: '1', name: 'Mathematics' },
-    { id: '2', name: 'English Language' },
-];
-
-const mockStudents = [
-    { id: '1', name: 'John Doe', caScore: 25, examScore: 55 },
-    { id: '2', name: 'Jane Smith', caScore: 28, examScore: 62 },
-    { id: '3', name: 'Robert Johnson', caScore: 15, examScore: 45 },
-];
+import { getClasses, getSubjects } from '@/actions/admin';
 
 export default function ResultsPage() {
+    const [classes, setClasses] = useState<any[]>([]);
+    const [subjects, setSubjects] = useState<any[]>([]);
     const [selectedClass, setSelectedClass] = useState('');
     const [selectedSubject, setSelectedSubject] = useState('');
     const [students, setStudents] = useState<any[]>([]);
@@ -32,11 +19,29 @@ export default function ResultsPage() {
     const [saving, setSaving] = useState(false);
     const [status, setStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
+    useEffect(() => {
+        loadData();
+    }, []);
+
+    const loadData = async () => {
+        const [clsRes, subRes] = await Promise.all([
+            getClasses(),
+            getSubjects()
+        ]);
+        if (clsRes.success && clsRes.data) setClasses(clsRes.data);
+        if (subRes.success && subRes.data) setSubjects(subRes.data);
+    };
+
     const handleSearch = () => {
         if (!selectedClass || !selectedSubject) return;
         setLoading(true);
-        // Simulate fetch
+        // Simulate fetch for students for now as we don't have getStudentsByClassSubject in current results actions
         setTimeout(() => {
+            const mockStudents = [
+                { id: '1', name: 'John Doe', caScore: 25, examScore: 55 },
+                { id: '2', name: 'Jane Smith', caScore: 28, examScore: 62 },
+                { id: '3', name: 'Robert Johnson', caScore: 15, examScore: 45 },
+            ];
             setStudents(mockStudents.map(s => ({ ...s })));
             setLoading(false);
         }, 1000);
@@ -105,7 +110,7 @@ export default function ResultsPage() {
                                 onChange={(e) => setSelectedClass(e.target.value)}
                             >
                                 <option value="">Choose Class...</option>
-                                {mockClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                             </select>
                         </div>
                         <div className="space-y-2">
@@ -116,7 +121,7 @@ export default function ResultsPage() {
                                 onChange={(e) => setSelectedSubject(e.target.value)}
                             >
                                 <option value="">Choose Subject...</option>
-                                {mockSubjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                             </select>
                         </div>
                         <Button

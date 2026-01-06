@@ -145,6 +145,7 @@ export async function createSubject(data: any) {
         revalidatePath('/dashboard/admin/subjects');
         return { success: true };
     } catch (error) {
-        return { success: false, error: 'Failed to create subject.' };
+        console.error('Create Subject Error:', error);
+        return { success: false, error: error instanceof Error ? error.message : 'Failed to create subject.' };
     }
 }

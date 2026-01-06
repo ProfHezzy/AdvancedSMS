@@ -119,12 +119,36 @@ async function main() {
     // Create Class
     const class1 = await prisma.class.upsert({
         where: { name: 'JSS 1A' },
-        update: {},
+        update: {
+            teacher: { connect: { userId: teacher.id } }
+        },
         create: {
             name: 'JSS 1A',
+            teacher: { connect: { userId: teacher.id } }
         },
     });
-    console.log('✅ Created class');
+    console.log('✅ Created class and assigned teacher');
+
+    // Link Teacher and Class to Subjects
+    for (const sub of subjects) {
+        await prisma.subject.update({
+            where: { id: sub.id },
+            data: {
+                teachers: { connect: { userId: teacher.id } },
+                classes: { connect: { id: class1.id } }
+            }
+        });
+    }
+    console.log('✅ Linked subjects to teacher and class');
+
+    // Link Student to Class
+    await prisma.studentProfile.update({
+        where: { userId: student.id },
+        data: {
+            classId: class1.id
+        }
+    });
+    console.log('✅ Assigned student to class');
 
     console.log('🎉 Database seeded successfully!');
     console.log('\n📝 Test Credentials:');

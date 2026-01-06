@@ -139,7 +139,9 @@ export async function getTeacherClasses(teacherId: string) {
     try {
         const classes = await prisma.class.findMany({
             where: {
-                teacherId: teacherId
+                teacher: {
+                    userId: teacherId // renamed parameter internally but it's userId from session
+                }
             }
         });
         return { success: true, data: classes };

@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "./generated-client"
 }
 
 datasource db {
@@ -78,12 +79,13 @@ model Class {
 }
 
 model Subject {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  code      String?
-  teachers  TeacherProfile[] @relation("SubjectToTeacherProfile")
-  classes   Class[] @relation("ClassToSubject")
-  results   Result[]
+  id          String   @id @default(uuid())
+  name        String   @unique
+  code        String?
+  coefficient Int      @default(1)
+  teachers    TeacherProfile[] @relation("SubjectToTeacherProfile")
+  classes     Class[] @relation("ClassToSubject")
+  results     Result[]
   assessments Assessment[]
   timetable   TimetableEntry[]
 }
@@ -135,9 +137,28 @@ model Assessment {
   dueDate     DateTime?
   token       String?  @unique // Secure token for entry
   maxScore    Float    @default(100)
+  questions   Question[]
   submissions Submission[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model Question {
+  id           String       @id @default(uuid())
+  assessmentId String
+  assessment   Assessment   @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  type         QuestionType @default(MULTIPLE_CHOICE)
+  text         String
+  options      String[]     // Used for MULTIPLE_CHOICE
+  correctAnswer String?     // Index for MCQ or keywords for Theory
+  points       Float        @default(1.0)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  THEORY
 }
 
 enum AssessmentType {

@@ -81,7 +81,7 @@ export default function TeacherDashboard() {
                             <CardDescription>Assessments waiting for your review.</CardDescription>
                         </div>
                         <Button variant="outline" size="sm" asChild>
-                            <Link href="/dashboard/assignments">View All</Link>
+                            <Link href="/dashboard/teacher/assignments">View All</Link>
                         </Button>
                     </CardHeader>
                     <CardContent>
@@ -115,13 +115,13 @@ export default function TeacherDashboard() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <Button className="w-full justify-start gap-3 h-12 text-base" variant="outline" asChild>
-                            <Link href="/dashboard/results">
+                            <Link href="/dashboard/results/ca">
                                 <Plus className="w-5 h-5 text-brand-600" />
                                 Record Results
                             </Link>
                         </Button>
                         <Button className="w-full justify-start gap-3 h-12 text-base" variant="outline" asChild>
-                            <Link href="/dashboard/assignments">
+                            <Link href="/dashboard/teacher/assignments">
                                 <BookOpen className="w-5 h-5 text-purple-600" />
                                 Create Assignment
                             </Link>

@@ -402,6 +402,40 @@ export const SECURITY_NAV: NavGroup[] = [
     }
 ];
 
+export const ACCOUNTANT_NAV: NavGroup[] = [
+    {
+        group: 'Dashboard',
+        items: [
+            { title: 'Overview', href: '/dashboard/finance', icon: Home },
+            { title: 'Financial Stats', href: '/dashboard/finance/stats', icon: BarChart3 },
+        ]
+    },
+    {
+        group: 'Wallets',
+        items: [
+            { title: 'Active Wallets', href: '/dashboard/finance/wallets', icon: Wallet },
+            { title: 'Reconciliation', href: '/dashboard/finance/wallets/reconcile', icon: CheckCircle2 },
+            { title: 'Virtual Accounts', href: '/dashboard/finance/virtual-accounts', icon: Fingerprint },
+        ]
+    },
+    {
+        group: 'Fees & Payments',
+        items: [
+            { title: 'Fee Configuration', href: '/dashboard/finance/fees', icon: Settings },
+            { title: 'Payment Records', href: '/dashboard/finance/payments', icon: Receipt },
+            { title: 'Pending Dues', href: '/dashboard/finance/fees/pending', icon: AlertCircle },
+        ]
+    },
+    {
+        group: 'Reports',
+        items: [
+            { title: 'Daily Revenue', href: '/dashboard/finance/reports/daily', icon: FileSpreadsheet },
+            { title: 'Termly Audit', href: '/dashboard/finance/reports/audit', icon: History },
+            { title: 'Income Statement', href: '/dashboard/finance/reports/income', icon: FileText },
+        ]
+    }
+];
+
 export const ADMIN_NAV: NavGroup[] = [
     {
         group: 'System',
@@ -438,4 +472,5 @@ export const ROLE_NAV_MAP: Record<string, NavGroup[]> = {
     HR: HR_NAV,
     MEDICAL: MEDICAL_NAV,
     SECURITY: SECURITY_NAV,
+    ACCOUNTANT: ACCOUNTANT_NAV,
 };
