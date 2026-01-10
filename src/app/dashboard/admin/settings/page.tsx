@@ -15,7 +15,8 @@ import {
     Clock,
     User,
     Activity,
-    SearchX
+    SearchX,
+    ChevronRight
 } from 'lucide-react';
 import { getSchoolSettings, updateSchoolSettings, getAuditLogs } from '@/actions/admin';
 import { cn } from '@/lib/utils';
@@ -38,7 +39,7 @@ export default function AdminSettingsPage() {
         ]);
 
         if (settingsRes.success) setSettings(settingsRes.data);
-        if (logsRes.success) setLogs(logsRes.data);
+        if (logsRes.success) setLogs(logsRes.data || []);
         setIsLoading(false);
     }
 

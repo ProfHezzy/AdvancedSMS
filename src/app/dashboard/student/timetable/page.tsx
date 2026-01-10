@@ -1,37 +1,50 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Clock, MapPin, Calendar, BookOpen } from 'lucide-react';
+import { Clock, MapPin, Calendar, BookOpen, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { useSession } from 'next-auth/react';
+import { getStudentProfile, getStudentTimetable } from '@/actions/academic';
 
 export default function StudentTimetablePage() {
+    const { data: session } = useSession();
+    const [timetable, setTimetable] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [className, setClassName] = useState('');
+
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-    const schedule = {
-        'Monday': [
-            { time: '08:00 - 08:45', subject: 'Mathematics', room: 'Room 1A', teacher: 'Mrs. Okon', type: 'CLASS' },
-            { time: '08:45 - 09:30', subject: 'English Language', room: 'Room 1A', teacher: 'Mr. David', type: 'CLASS' },
-            { time: '09:30 - 10:00', subject: 'Short Break', type: 'BREAK' },
-            { time: '10:00 - 10:45', subject: 'Basic Science', room: 'Lab 2', teacher: 'Dr. Sarah', type: 'CLASS' },
-        ],
-        'Tuesday': [
-            { time: '08:00 - 08:45', subject: 'Social Studies', room: 'Room 1A', teacher: 'Justina B.', type: 'CLASS' },
-            { time: '08:45 - 09:30', subject: 'Civic Education', room: 'Room 1A', teacher: 'Mr. James', type: 'CLASS' },
-        ],
-        'Wednesday': [
-            { time: '08:00 - 09:30', subject: 'Sports / Physical Health', room: 'Field', teacher: 'Coach P.', type: 'ACTIVITY' },
-        ],
-        'Thursday': [
-            { time: '08:00 - 08:45', subject: 'Mathematics', room: 'Room 1A', teacher: 'Mrs. Okon', type: 'CLASS' },
-        ],
-        'Friday': [
-            { time: '08:00 - 08:45', subject: 'General Assembly', room: 'Hall', type: 'ASSEMBLY' },
-            { time: '09:00 - 09:45', subject: 'Mathematics', room: 'Room 1A', teacher: 'Mrs. Okon', type: 'CLASS' },
-        ]
+    const currentDay = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+    const dayMapInverse: { [key: number]: string } = {
+        1: 'Monday', 2: 'Tuesday', 3: 'Wednesday', 4: 'Thursday', 5: 'Friday', 6: 'Saturday', 7: 'Sunday'
     };
 
-    const currentDay = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+    useEffect(() => {
+        if (session?.user?.id) {
+            loadTimetable();
+        }
+    }, [session]);
+
+    async function loadTimetable() {
+        setLoading(true);
+        // 1. Get Profile to get ClassId
+        const profileRes = await getStudentProfile((session?.user as any).id);
+        if (profileRes.success && profileRes.data && profileRes.data.classId) {
+            setClassName(profileRes.data.class?.name || '');
+            // 2. Get Timetable
+            const timeRes = await getStudentTimetable(profileRes.data.classId);
+            if (timeRes.success && timeRes.data) {
+                setTimetable(timeRes.data);
+            }
+        }
+        setLoading(false);
+    }
+
+    const getEntriesForDay = (dayStr: string) => {
+        return timetable.filter(t => dayMapInverse[t.dayOfWeek] === dayStr);
+    };
 
     return (
         <div className="p-8 space-y-8 animate-fade-in text-gray-900">
@@ -42,7 +55,7 @@ export default function StudentTimetablePage() {
                     </h1>
                     <p className="text-muted-foreground mt-2 font-medium flex items-center gap-2">
                         <Calendar className="w-4 h-4" />
-                        Academic Session 2025/2026
+                        Academic Session 2025/2026 {className && `• ${className}`}
                     </p>
                 </div>
             </div>
@@ -60,50 +73,47 @@ export default function StudentTimetablePage() {
                     ))}
                 </TabsList>
 
-                {days.map(day => (
-                    <TabsContent key={day} value={day} className="space-y-4">
-                        {(schedule[day as keyof typeof schedule] || []).map((slot: any, i: number) => (
-                            <Card key={i} className={cn(
-                                "border-none shadow-soft transition-all hover:scale-[1.01] hover:shadow-md",
-                                slot.type === 'BREAK' ? 'bg-amber-50/50' :
-                                    slot.type === 'ACTIVITY' ? 'bg-green-50/50' :
-                                        slot.type === 'ASSEMBLY' ? 'bg-purple-50/50' : 'glass'
-                            )}>
-                                <CardContent className="p-6 flex flex-col md:flex-row md:items-center gap-6">
-                                    <div className={cn(
-                                        "min-w-[150px] px-4 py-3 rounded-xl border flex items-center justify-center gap-2 font-black text-sm shadow-sm",
-                                        slot.type === 'CLASS' ? "bg-white text-brand-700 border-brand-100" : "bg-white/50 border-gray-100 text-gray-600"
-                                    )}>
-                                        <Clock className="w-4 h-4" /> {slot.time}
-                                    </div>
-
-                                    <div className="flex-1 space-y-2">
-                                        <h3 className={cn("text-xl font-black uppercase tracking-tight", slot.type === 'BREAK' ? "text-amber-700" : "text-gray-900")}>
-                                            {slot.subject}
-                                        </h3>
-                                        {slot.type === 'CLASS' && (
-                                            <div className="flex flex-wrap gap-3">
-                                                <Badge variant="outline" className="gap-1 font-bold bg-white/50 border-gray-200 text-gray-700">
-                                                    <MapPin className="w-3 h-3" /> {slot.room}
-                                                </Badge>
-                                                <Badge variant="outline" className="gap-1 font-bold bg-white/50 border-gray-200 text-gray-700">
-                                                    <BookOpen className="w-3 h-3" /> {slot.teacher}
-                                                </Badge>
+                {loading ? (
+                    <div className="h-64 flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600"></div>
+                    </div>
+                ) : (
+                    days.map(day => (
+                        <TabsContent key={day} value={day} className="space-y-4">
+                            {getEntriesForDay(day).length === 0 ? (
+                                <div className="p-12 text-center bg-white/50 backdrop-blur rounded-3xl border-2 border-dashed border-gray-100 opacity-60">
+                                    <h3 className="text-xl font-bold text-gray-500">No classes scheduled</h3>
+                                </div>
+                            ) : (
+                                getEntriesForDay(day).map((slot: any, i: number) => (
+                                    <Card key={i} className="border-none shadow-soft transition-all hover:scale-[1.01] hover:shadow-md glass">
+                                        <CardContent className="p-6 flex flex-col md:flex-row md:items-center gap-6">
+                                            <div className="min-w-[150px] px-4 py-3 rounded-xl border flex items-center justify-center gap-2 font-black text-sm shadow-sm bg-white text-brand-700 border-brand-100">
+                                                <Clock className="w-4 h-4" /> {slot.startTime} - {slot.endTime}
                                             </div>
-                                        )}
-                                    </div>
 
-                                    <div className="w-full md:w-2 h-2 md:h-16 rounded-full bg-gray-200 overflow-hidden mt-4 md:mt-0">
-                                        {slot.type === 'CLASS' && <div className="w-full h-full bg-brand-500" />}
-                                        {slot.type === 'BREAK' && <div className="w-full h-full bg-amber-400" />}
-                                        {slot.type === 'ACTIVITY' && <div className="w-full h-full bg-green-500" />}
-                                        {slot.type === 'ASSEMBLY' && <div className="w-full h-full bg-purple-500" />}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </TabsContent>
-                ))}
+                                            <div className="flex-1 space-y-2">
+                                                <h3 className="text-xl font-black uppercase tracking-tight text-gray-900">
+                                                    {slot.subject.name}
+                                                </h3>
+                                                <div className="flex flex-wrap gap-3">
+                                                    <Badge variant="outline" className="gap-1 font-bold bg-white/50 border-gray-200 text-gray-700">
+                                                        <MapPin className="w-3 h-3" /> {slot.room || 'Classroom'}
+                                                    </Badge>
+                                                    <Badge variant="outline" className="gap-1 font-bold bg-white/50 border-gray-200 text-gray-700">
+                                                        <BookOpen className="w-3 h-3" /> {slot.type || 'Lecture'}
+                                                    </Badge>
+                                                </div>
+                                            </div>
+
+                                            <div className="w-full md:w-2 h-2 md:h-16 rounded-full overflow-hidden mt-4 md:mt-0 bg-brand-500"></div>
+                                        </CardContent>
+                                    </Card>
+                                ))
+                            )}
+                        </TabsContent>
+                    ))
+                )}
             </Tabs>
         </div>
     );

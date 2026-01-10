@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "./generated-client"
 }
 
 datasource db {
@@ -9,151 +8,377 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  username  String   @unique
-  email     String?  @unique
-  password  String
-  role      Role     @default(STUDENT)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  isActive  Boolean  @default(true)
-
-  studentProfile StudentProfile?
-  teacherProfile TeacherProfile?
-  parentProfile  ParentProfile?
-  staffProfile   StaffProfile?
-  
-  announcements  Announcement[]
-  sentMessages   Message[] @relation("SentMessages")
-  receivedMessages Message[] @relation("ReceivedMessages")
+  id               String          @id @default(uuid())
+  username         String          @unique
+  email            String?         @unique
+  password         String
+  name             String?
+  image            String?
+  role             Role            @default(STUDENT)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  isActive         Boolean         @default(true)
+  announcements    Announcement[]
+  receivedMessages Message[]       @relation("ReceivedMessages")
+  sentMessages     Message[]       @relation("SentMessages")
+  parentProfile    ParentProfile?
+  staffProfile     StaffProfile?
+  studentProfile   StudentProfile?
+  teacherProfile   TeacherProfile?
 }
 
 model StudentProfile {
-  id        String   @id @default(uuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id])
-  classId   String?
-  class     Class?   @relation(fields: [classId], references: [id])
-  parentId  String?
-  parent    ParentProfile? @relation(fields: [parentId], references: [id])
-  results   Result[]
-  attendance Attendance[]
+  id          String         @id @default(uuid())
+  studentId   String?        @unique // For School ID like ASMS/2026/001
+  userId      String         @unique
+  classId     String?
+  parentId    String?
+  
+  // Admission Metadata
+  admissionSessionId String?
+  admissionTermId    String?
+  admissionType      String?     @default("NEW") // NEW, TRANSFER
+  admissionStatus    String?     @default("ADMITTED") // DRAFT, ADMITTED, PENDING_APPROVAL
+  category           String?     @default("DAY") // DAY, BOARDING
+  admissionDate      DateTime?   @default(now())
+  admittedById       String?
+  
+  // Bio-data
+  gender      String?
+  dateOfBirth DateTime?
+  address     String?
+  phone       String?
+
+  // Profile Completion
+  profileCompletion  Int?        @default(40)
+  nationality        String?
+  stateOfOrigin      String?
+  lga                String?
+  bloodGroup         String?
+  genotype           String?
+  religion           String?
+  
+  // Academic
+  arm                String?
+
+  // Medical Info (Detailed)
+  allergies   String?
+  medicalInfo String?
+  medicalConsent Boolean     @default(false)
+
+  attendance  Attendance[]
+  feePayments FeePayment[]
+  results     Result[]
+  class       Class?         @relation(fields: [classId], references: [id])
+  parent      ParentProfile? @relation(fields: [parentId], references: [id])
+  user        User           @relation(fields: [userId], references: [id])
   submissions Submission[]
+  behavioralRemarks BehavioralRemark[]
 }
 
 model TeacherProfile {
-  id        String   @id @default(uuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id])
-  subjects  Subject[] @relation("SubjectToTeacherProfile")
-  classes   Class[]  @relation("ClassTeacher")
-  assessments Assessment[]
+  id                String       @id @default(uuid())
+  userId            String       @unique
+  assessments       Assessment[]
+  classes           Class[]      @relation("ClassTeacher")
   gradedSubmissions Submission[] @relation("Grader")
+  user              User         @relation(fields: [userId], references: [id])
+  subjects          Subject[]    @relation("SubjectToTeacherProfile")
+  behavioralRemarks BehavioralRemark[]
+  schemes           SchemeOfWork[]
 }
 
 model ParentProfile {
-  id        String   @id @default(uuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id])
-  students  StudentProfile[]
-  wallet    Wallet?
+  id       String           @id @default(uuid())
+  userId   String           @unique
+  user     User             @relation(fields: [userId], references: [id])
+  
+  phone         String?
+  address       String?
+  relationship  String?     // Relationship to student (Father, Mother, Guardian)
+  occupation    String?
+  
+  cards    SavedCard[]
+  students StudentProfile[]
+  wallet   Wallet?
 }
 
 model StaffProfile {
-  id        String   @id @default(uuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id])
-  role      Role // specific staff role
+  id              String            @id @default(uuid())
+  staffId         String?           @unique // School ID like STAFF/2026/001
+  userId          String            @unique
+  role            Role
+  user            User              @relation(fields: [userId], references: [id])
+  
+  // Basic Info
+  gender          String?
+  dateOfBirth     DateTime?
+  phone           String?
+  address         String?
+
+  // Work Info
+  department      String?
+  jobTitle        String?
+  employmentType  String?           @default("FULL_TIME") // FULL_TIME, PART_TIME, CONTRACT
+  category        String?           @default("NON_ACADEMIC") // ACADEMIC, NON_ACADEMIC
+  
+  // Role Specific Duty
+  dutyUnit        String?           // Gate A, Sick Bay, etc.
+  shiftType       String?           @default("MORNING") // MORNING, EVENING, ROTATIONAL
+
+  // Metadata
+  employmentStartDate DateTime?     @default(now())
+  addedById           String?
+  profileCompletion   Int?          @default(30)
+  firstLoginReset     Boolean       @default(true)
+
+  attendance      StaffAttendance[]
+  salaryStructure SalaryStructure?
+  payrolls        Payroll[]
+  leaveRequests   LeaveRequest[]
 }
 
 model Class {
-  id        String   @id @default(uuid())
-  name      String   @unique // e.g. "JSS 1 A"
-  teacherId String?
-  teacher   TeacherProfile? @relation("ClassTeacher", fields: [teacherId], references: [id])
-  students  StudentProfile[]
-  subjects  Subject[] @relation("ClassToSubject")
-  assessments Assessment[]
+  id            String           @id @default(uuid())
+  name          String           @unique
+  teacherId     String?
   announcements Announcement[]
-  timetable   TimetableEntry[]
+  assessments   Assessment[]
+  teacher       TeacherProfile?  @relation("ClassTeacher", fields: [teacherId], references: [id])
+  fees          Fee[]
+  students      StudentProfile[]
+  timetable     TimetableEntry[]
+  subjects      Subject[]        @relation("ClassToSubject")
 }
 
 model Subject {
-  id          String   @id @default(uuid())
-  name        String   @unique
+  id          String           @id @default(uuid())
+  name        String           @unique
   code        String?
-  coefficient Int      @default(1)
-  teachers    TeacherProfile[] @relation("SubjectToTeacherProfile")
-  classes     Class[] @relation("ClassToSubject")
-  results     Result[]
+  coefficient Int              @default(1)
   assessments Assessment[]
+  results     Result[]
   timetable   TimetableEntry[]
+  classes     Class[]          @relation("ClassToSubject")
+  teachers    TeacherProfile[] @relation("SubjectToTeacherProfile")
+  schemes     SchemeOfWork[]
 }
 
 model Session {
-  id        String   @id @default(uuid())
-  name      String   @unique // e.g. "2025/2026"
-  isCurrent Boolean  @default(false)
+  id        String  @id @default(uuid())
+  name      String  @unique
+  isCurrent Boolean @default(false)
   terms     Term[]
 }
 
 model Term {
   id        String   @id @default(uuid())
-  name      String // "First Term"
+  name      String
   sessionId String
-  session   Session  @relation(fields: [sessionId], references: [id])
   isCurrent Boolean  @default(false)
+  fees      Fee[]
   results   Result[]
+  session   Session  @relation(fields: [sessionId], references: [id])
+  behavioralRemarks BehavioralRemark[]
+  schemes   SchemeOfWork[]
+}
+
+model SchemeOfWork {
+  id        String   @id @default(uuid())
+  subjectId String
+  teacherId String
+  termId    String
+  week      Int
+  topic     String
+  objectives String?
+  status    String   @default("PENDING") // COMPLETED, IN_PROGRESS, PENDING
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  subject   Subject        @relation(fields: [subjectId], references: [id])
+  teacher   TeacherProfile @relation(fields: [teacherId], references: [id])
+  term      Term           @relation(fields: [termId], references: [id])
 }
 
 model Result {
-  id        String   @id @default(uuid())
+  id        String         @id @default(uuid())
   studentId String
-  student   StudentProfile @relation(fields: [studentId], references: [id])
   subjectId String
-  subject   Subject        @relation(fields: [subjectId], references: [id])
   termId    String
-  term      Term           @relation(fields: [termId], references: [id])
-  
-  caScore   Float    @default(0)
-  examScore Float    @default(0)
-  total     Float    @default(0)
+  caScore   Float          @default(0)
+  examScore Float          @default(0)
+  total     Float          @default(0)
   grade     String?
+  student   StudentProfile @relation(fields: [studentId], references: [id])
+  subject   Subject        @relation(fields: [subjectId], references: [id])
+  term      Term           @relation(fields: [termId], references: [id])
 
   @@unique([studentId, subjectId, termId])
 }
 
 model Assessment {
-  id          String   @id @default(uuid())
+  id          String         @id @default(uuid())
   title       String
   description String?
   type        AssessmentType @default(ASSIGNMENT)
   subjectId   String
-  subject     Subject  @relation(fields: [subjectId], references: [id])
   classId     String
-  class       Class    @relation(fields: [classId], references: [id])
   teacherId   String
-  teacher     TeacherProfile @relation(fields: [teacherId], references: [id])
   dueDate     DateTime?
-  token       String?  @unique // Secure token for entry
-  maxScore    Float    @default(100)
+  token       String?        @unique
+  maxScore    Float          @default(100)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  class       Class          @relation(fields: [classId], references: [id])
+  subject     Subject        @relation(fields: [subjectId], references: [id])
+  teacher     TeacherProfile @relation(fields: [teacherId], references: [id])
   questions   Question[]
   submissions Submission[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
 }
 
 model Question {
-  id           String       @id @default(uuid())
+  id            String       @id @default(uuid())
+  assessmentId  String
+  type          QuestionType @default(MULTIPLE_CHOICE)
+  text          String
+  options       String[]
+  correctAnswer String?
+  points        Float        @default(1.0)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  assessment    Assessment   @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+}
+
+model Submission {
+  id           String           @id @default(uuid())
   assessmentId String
-  assessment   Assessment   @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
-  type         QuestionType @default(MULTIPLE_CHOICE)
-  text         String
-  options      String[]     // Used for MULTIPLE_CHOICE
-  correctAnswer String?     // Index for MCQ or keywords for Theory
-  points       Float        @default(1.0)
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  studentId    String
+  content      String?
+  score        Float?
+  gradedById   String?
+  status       SubmissionStatus @default(PENDING)
+  submittedAt  DateTime         @default(now())
+  assessment   Assessment       @relation(fields: [assessmentId], references: [id])
+  gradedBy     TeacherProfile?  @relation("Grader", fields: [gradedById], references: [id])
+  student      StudentProfile   @relation(fields: [studentId], references: [id])
+
+  @@unique([assessmentId, studentId])
+}
+
+model Wallet {
+  id             String        @id @default(uuid())
+  parentId       String        @unique
+  balance        Float         @default(0.0)
+  virtualAccount String?       @unique
+  transactions   Transaction[]
+  parent         ParentProfile @relation(fields: [parentId], references: [id])
+}
+
+model Transaction {
+  id          String       @id @default(uuid())
+  walletId    String
+  amount      Float
+  type        String
+  reference   String       @unique
+  status      String
+  createdAt   DateTime     @default(now())
+  feePayments FeePayment[]
+  wallet      Wallet       @relation(fields: [walletId], references: [id])
+}
+
+model SavedCard {
+  id                String        @id @default(uuid())
+  parentId          String
+  authorizationCode String
+  last4             String
+  brand             String
+  expMonth          String
+  expYear           String
+  bank              String?
+  signature         String?
+  email             String
+  isDefault         Boolean       @default(false)
+  createdAt         DateTime      @default(now())
+  parent            ParentProfile @relation(fields: [parentId], references: [id])
+
+  @@unique([parentId, signature])
+}
+
+model Fee {
+  id          String       @id @default(uuid())
+  title       String
+  description String?
+  amount      Float
+  mandatory   Boolean      @default(true)
+  termId      String
+  classId     String?
+  dueDate     DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  class       Class?       @relation(fields: [classId], references: [id])
+  term        Term         @relation(fields: [termId], references: [id])
+  payments    FeePayment[]
+}
+
+model FeePayment {
+  id            String         @id @default(uuid())
+  studentId     String
+  feeId         String
+  amountPaid    Float
+  status        PaymentStatus  @default(PARTIAL)
+  transactionId String?
+  paymentDate   DateTime       @default(now())
+  fee           Fee            @relation(fields: [feeId], references: [id])
+  student       StudentProfile @relation(fields: [studentId], references: [id])
+  transaction   Transaction?   @relation(fields: [transactionId], references: [id])
+
+  @@unique([studentId, feeId])
+}
+
+model Announcement {
+  id        String   @id @default(uuid())
+  title     String
+  content   String
+  authorId  String
+  classId   String?
+  role      Role?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  author    User     @relation(fields: [authorId], references: [id])
+  class     Class?   @relation(fields: [classId], references: [id])
+}
+
+model Message {
+  id          String   @id @default(uuid())
+  content     String
+  senderId    String
+  recipientId String
+  createdAt   DateTime @default(now())
+  recipient   User     @relation("ReceivedMessages", fields: [recipientId], references: [id])
+  sender      User     @relation("SentMessages", fields: [senderId], references: [id])
+}
+
+model Attendance {
+  id        String         @id @default(uuid())
+  studentId String
+  date      DateTime
+  status    String
+  createdAt DateTime       @default(now())
+  student   StudentProfile @relation(fields: [studentId], references: [id])
+}
+
+model TimetableEntry {
+  id        String   @id @default(uuid())
+  classId   String
+  subjectId String
+  dayOfWeek Int
+  startTime String
+  endTime   String
+  room      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  class     Class    @relation(fields: [classId], references: [id])
+  subject   Subject  @relation(fields: [subjectId], references: [id])
 }
 
 enum QuestionType {
@@ -168,92 +393,16 @@ enum AssessmentType {
   EXAM
 }
 
-model Submission {
-  id           String     @id @default(uuid())
-  assessmentId String
-  assessment   Assessment @relation(fields: [assessmentId], references: [id])
-  studentId    String
-  student      StudentProfile @relation(fields: [studentId], references: [id])
-  content      String?    // Link or text
-  score        Float?
-  gradedById   String?
-  gradedBy     TeacherProfile? @relation("Grader", fields: [gradedById], references: [id])
-  status       SubmissionStatus @default(PENDING)
-  submittedAt  DateTime   @default(now())
-
-  @@unique([assessmentId, studentId])
-}
-
 enum SubmissionStatus {
   PENDING
   GRADED
   LATE
 }
 
-model Wallet {
-  id        String   @id @default(uuid())
-  parentId  String   @unique
-  parent    ParentProfile @relation(fields: [parentId], references: [id])
-  balance   Float    @default(0.0)
-  virtualAccount String? @unique
-  transactions Transaction[]
-}
-
-model Transaction {
-  id        String   @id @default(uuid())
-  walletId  String
-  wallet    Wallet   @relation(fields: [walletId], references: [id])
-  amount    Float
-  type      String   // CREDIT, DEBIT
-  reference String   @unique
-  status    String   // PENDING, SUCCESS, FAILED
-  createdAt DateTime @default(now())
-}
-
-model Announcement {
-  id        String   @id @default(uuid())
-  title     String
-  content   String
-  authorId  String
-  author    User     @relation(fields: [authorId], references: [id])
-  classId   String?  // Optional: if null, it's a global announcement
-  class     Class?   @relation(fields: [classId], references: [id])
-  role      Role?    // Optional: targeted at a specific role
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Message {
-  id          String   @id @default(uuid())
-  content     String
-  senderId    String
-  sender      User     @relation("SentMessages", fields: [senderId], references: [id])
-  recipientId String
-  recipient   User     @relation("ReceivedMessages", fields: [recipientId], references: [id])
-  createdAt   DateTime @default(now())
-}
-
-model Attendance {
-  id        String @id @default(uuid())
-  studentId String
-  student   StudentProfile @relation(fields: [studentId], references: [id])
-  date      DateTime
-  status    String // PRESENT, ABSENT, LATE
-  createdAt DateTime @default(now())
-}
-
-model TimetableEntry {
-  id        String   @id @default(uuid())
-  classId   String
-  class     Class    @relation(fields: [classId], references: [id])
-  subjectId String
-  subject   Subject  @relation(fields: [subjectId], references: [id])
-  dayOfWeek Int      // 1-7 (Monday-Sunday)
-  startTime String   // "08:00"
-  endTime   String   // "09:00"
-  room      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+enum PaymentStatus {
+  PENDING
+  PARTIAL
+  COMPLETED
 }
 
 enum Role {
@@ -266,4 +415,76 @@ enum Role {
   HR
   MEDICAL
   SECURITY
+}
+
+model BehavioralRemark {
+  id              String         @id @default(uuid())
+  studentId       String
+  teacherId       String
+  termId          String
+  rating          Rating         @default(AVERAGE)
+  observation     String
+  tags            String[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  student         StudentProfile @relation(fields: [studentId], references: [id])
+  teacher         TeacherProfile @relation(fields: [teacherId], references: [id])
+  term            Term           @relation(fields: [termId], references: [id])
+
+  @@unique([studentId, termId])
+}
+
+enum Rating {
+  EXCELLENT
+  AVERAGE
+  POOR
+}
+
+model StaffAttendance {
+  id        String       @id @default(uuid())
+  staffId   String
+  date      DateTime
+  status    String       // PRESENT, ABSENT, LATE, LEAVE
+  checkIn   DateTime?
+  checkOut  DateTime?
+  staff     StaffProfile @relation(fields: [staffId], references: [id])
+
+  @@unique([staffId, date])
+}
+
+model SalaryStructure {
+  id          String       @id @default(uuid())
+  staffId     String       @unique
+  baseSalary  Float
+  allowances  Float        @default(0)
+  deductions  Float        @default(0)
+  staff       StaffProfile @relation(fields: [staffId], references: [id])
+}
+
+model Payroll {
+  id           String       @id @default(uuid())
+  staffId      String
+  month        Int
+  year         Int
+  baseSalary   Float
+  allowances   Float
+  deductions   Float
+  netSalary    Float
+  status       String       // PENDING, PAID
+  paymentDate  DateTime?
+  staff        StaffProfile @relation(fields: [staffId], references: [id])
+
+  @@unique([staffId, month, year])
+}
+
+model LeaveRequest {
+  id        String       @id @default(uuid())
+  staffId   String
+  type      String       // SICK, ANNUAL, MATERNITY, OTHER
+  startDate DateTime
+  endDate   DateTime
+  reason    String?
+  status    String       @default("PENDING") // PENDING, APPROVED, REJECTED
+  createdAt DateTime     @default(now())
+  staff     StaffProfile @relation(fields: [staffId], references: [id])
 }

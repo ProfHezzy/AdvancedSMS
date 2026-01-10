@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { signOut } from 'next-auth/react';
+import { signOut, useSession } from 'next-auth/react';
 import {
     GraduationCap,
     LogOut,
@@ -15,17 +15,31 @@ import {
 } from 'lucide-react';
 import { ROLE_NAV_MAP, NavItem, NavGroup } from '@/config/navigation';
 import { Button } from '@/components/ui/button';
+import { getUserProfile } from '@/actions/profile';
 
 interface SidebarProps {
     role?: string;
+    user?: any;
 }
 
-export function Sidebar({ role = 'STUDENT' }: SidebarProps) {
+export function Sidebar({ role = 'STUDENT', user }: SidebarProps) {
+    // const { data: session } = useSession(); // Removed to prevent Context Error
     const pathname = usePathname();
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [expandedItems, setExpandedItems] = useState<string[]>([]);
+    const [avatar, setAvatar] = useState<string | null>(null);
 
     const navGroups = ROLE_NAV_MAP[role] || ROLE_NAV_MAP.STUDENT;
+
+    useEffect(() => {
+        if (user?.id) {
+            getUserProfile(user.id).then(res => {
+                if (res.success && res.data?.image) {
+                    setAvatar(res.data.image);
+                }
+            });
+        }
+    }, [user?.id]);
 
     // Persist collapse state (optional, browser only)
     useEffect(() => {
@@ -67,8 +81,8 @@ export function Sidebar({ role = 'STUDENT' }: SidebarProps) {
                 "h-20 flex items-center border-b border-brand-50/50 px-4",
                 isCollapsed ? "justify-center" : "gap-3 px-6"
             )}>
-                <div className="w-10 h-10 bg-gradient-to-br from-brand-500 to-brand-700 rounded-xl flex items-center justify-center shadow-lg shadow-brand-500/20 shrink-0">
-                    <GraduationCap className="w-6 h-6 text-white" />
+                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg shadow-brand-500/10 shrink-0 overflow-hidden border border-brand-100/50">
+                    <img src="/logo.jpg" alt="Logo" className="w-full h-full object-cover scale-110" />
                 </div>
                 {!isCollapsed && (
                     <div className="animate-in fade-in slide-in-from-left-2">
@@ -109,12 +123,18 @@ export function Sidebar({ role = 'STUDENT' }: SidebarProps) {
                 {!isCollapsed && (
                     <div className="px-4 py-3 rounded-xl bg-brand-50/50 border border-brand-100/50 mb-4 animate-in fade-in">
                         <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-brand-200 to-brand-300 font-bold flex items-center justify-center text-brand-800 text-xs shadow-inner">
-                                {role.charAt(0)}
+                            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-brand-500 to-brand-600 font-bold flex items-center justify-center text-white text-xs shadow-lg shadow-brand-500/20 overflow-hidden">
+                                {avatar ? (
+                                    <img src={avatar} alt="User" className="w-full h-full object-cover" />
+                                ) : (
+                                    (user?.name || user?.username || role).charAt(0).toUpperCase()
+                                )}
                             </div>
                             <div className="min-w-0">
-                                <p className="text-xs font-bold text-gray-900 truncate">{role}</p>
-                                <p className="text-[10px] text-brand-600 font-medium">Session Active</p>
+                                <p className="text-xs font-black text-gray-900 truncate uppercase tracking-tight">
+                                    {user?.name || user?.username || role}
+                                </p>
+                                <p className="text-[10px] text-brand-600 font-bold uppercase tracking-widest opacity-80">{role}</p>
                             </div>
                         </div>
                     </div>

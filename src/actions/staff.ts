@@ -10,18 +10,72 @@ import { revalidatePath } from 'next/cache';
 export async function getStaffList(role?: 'HR' | 'TEACHER' | 'ADMIN' | 'MEDICAL' | 'SECURITY') {
     try {
         const staff = await prisma.user.findMany({
-            where: role ? { role } : {
-                NOT: { role: 'STUDENT' }
+            where: {
+                role: role ? role : {
+                    in: ['ADMIN', 'TEACHER', 'HR', 'MEDICAL', 'SECURITY', 'ACCOUNTANT']
+                }
             },
             include: {
                 teacherProfile: true,
+                staffProfile: true
                 // Add other profiles as they are defined
-            }
+            },
+            orderBy: { createdAt: 'desc' }
         });
         return { success: true, data: staff };
     } catch (error) {
         console.error('Failed to fetch staff:', error);
         return { success: false, error: 'Failed to retrieve staff list.' };
+    }
+}
+
+export async function getHRDashboardStats() {
+    try {
+        const now = new Date();
+        const [totalStaff, teachers, hr, medical, security, accountants, admins, onLeaveCount, currentPayroll] = await Promise.all([
+            prisma.user.count({
+                where: { role: { notIn: ['STUDENT', 'PARENT'] } }
+            }),
+            prisma.user.count({ where: { role: 'TEACHER' } }),
+            prisma.user.count({ where: { role: 'HR' } }),
+            prisma.user.count({ where: { role: 'MEDICAL' } }),
+            prisma.user.count({ where: { role: 'SECURITY' } }),
+            prisma.user.count({ where: { role: 'ACCOUNTANT' } }),
+            prisma.user.count({ where: { role: 'ADMIN' } }),
+            prisma.leaveRequest.count({
+                where: {
+                    status: 'APPROVED',
+                    startDate: { lte: now },
+                    endDate: { gte: now }
+                }
+            }),
+            prisma.payroll.findFirst({
+                where: {
+                    month: now.getMonth() + 1,
+                    year: now.getFullYear()
+                }
+            })
+        ]);
+
+        return {
+            success: true,
+            data: {
+                totalStaff,
+                departmentCounts: {
+                    TEACHER: teachers,
+                    HR: hr,
+                    MEDICAL: medical,
+                    SECURITY: security,
+                    ACCOUNTANT: accountants,
+                    ADMIN: admins
+                },
+                onLeave: onLeaveCount,
+                payrollStatus: currentPayroll ? 'Generated' : 'Pending'
+            }
+        };
+    } catch (error) {
+        console.error('Failed to fetch HR stats:', error);
+        return { success: false, error: 'Failed to fetch HR statistics.' };
     }
 }
 
@@ -31,7 +85,7 @@ export async function getStaffDetails(userId: string) {
             where: { id: userId },
             include: {
                 teacherProfile: true,
-                wallet: true
+                staffProfile: true
             }
         });
         return { success: true, data: staff };

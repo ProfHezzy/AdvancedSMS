@@ -1,0 +1,327 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "./generated-client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  email     String?  @unique
+  password  String
+  name      String?
+  image     String?
+  role      Role     @default(STUDENT)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  isActive  Boolean  @default(true)
+
+  studentProfile StudentProfile?
+  teacherProfile TeacherProfile?
+  parentProfile  ParentProfile?
+  staffProfile   StaffProfile?
+  
+  announcements  Announcement[]
+  sentMessages   Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
+}
+
+model StudentProfile {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  classId   String?
+  class     Class?   @relation(fields: [classId], references: [id])
+  parentId  String?
+  parent    ParentProfile? @relation(fields: [parentId], references: [id])
+  results   Result[]
+  attendance Attendance[]
+  submissions Submission[]
+}
+
+model TeacherProfile {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  subjects  Subject[] @relation("SubjectToTeacherProfile")
+  classes   Class[]  @relation("ClassTeacher")
+  assessments Assessment[]
+  gradedSubmissions Submission[] @relation("Grader")
+}
+
+model ParentProfile {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  students  StudentProfile[]
+  wallet    Wallet?
+  cards     SavedCard[]
+}
+
+model StaffProfile {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  role      Role // specific staff role
+}
+
+model Class {
+  id        String   @id @default(uuid())
+  name      String   @unique // e.g. "JSS 1 A"
+  teacherId String?
+  teacher   TeacherProfile? @relation("ClassTeacher", fields: [teacherId], references: [id])
+  students  StudentProfile[]
+  subjects  Subject[] @relation("ClassToSubject")
+  assessments Assessment[]
+  announcements Announcement[]
+  timetable   TimetableEntry[]
+}
+
+model Subject {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  code        String?
+  coefficient Int      @default(1)
+  teachers    TeacherProfile[] @relation("SubjectToTeacherProfile")
+  classes     Class[] @relation("ClassToSubject")
+  results     Result[]
+  assessments Assessment[]
+  timetable   TimetableEntry[]
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  name      String   @unique // e.g. "2025/2026"
+  isCurrent Boolean  @default(false)
+  terms     Term[]
+}
+
+model Term {
+  id        String   @id @default(uuid())
+  name      String // "First Term"
+  sessionId String
+  session   Session  @relation(fields: [sessionId], references: [id])
+  isCurrent Boolean  @default(false)
+  results   Result[]
+}
+
+model Result {
+  id        String   @id @default(uuid())
+  studentId String
+  student   StudentProfile @relation(fields: [studentId], references: [id])
+  subjectId String
+  subject   Subject        @relation(fields: [subjectId], references: [id])
+  termId    String
+  term      Term           @relation(fields: [termId], references: [id])
+  
+  caScore   Float    @default(0)
+  examScore Float    @default(0)
+  total     Float    @default(0)
+  grade     String?
+
+  @@unique([studentId, subjectId, termId])
+}
+
+model Assessment {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  type        AssessmentType @default(ASSIGNMENT)
+  subjectId   String
+  subject     Subject  @relation(fields: [subjectId], references: [id])
+  classId     String
+  class       Class    @relation(fields: [classId], references: [id])
+  teacherId   String
+  teacher     TeacherProfile @relation(fields: [teacherId], references: [id])
+  dueDate     DateTime?
+  token       String?  @unique // Secure token for entry
+  maxScore    Float    @default(100)
+  questions   Question[]
+  submissions Submission[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Question {
+  id           String       @id @default(uuid())
+  assessmentId String
+  assessment   Assessment   @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  type         QuestionType @default(MULTIPLE_CHOICE)
+  text         String
+  options      String[]     // Used for MULTIPLE_CHOICE
+  correctAnswer String?     // Index for MCQ or keywords for Theory
+  points       Float        @default(1.0)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  THEORY
+}
+
+enum AssessmentType {
+  ASSIGNMENT
+  PROJECT
+  TEST
+  EXAM
+}
+
+model Submission {
+  id           String     @id @default(uuid())
+  assessmentId String
+  assessment   Assessment @relation(fields: [assessmentId], references: [id])
+  studentId    String
+  student      StudentProfile @relation(fields: [studentId], references: [id])
+  content      String?    // Link or text
+  score        Float?
+  gradedById   String?
+  gradedBy     TeacherProfile? @relation("Grader", fields: [gradedById], references: [id])
+  status       SubmissionStatus @default(PENDING)
+  submittedAt  DateTime   @default(now())
+
+  @@unique([assessmentId, studentId])
+}
+
+enum SubmissionStatus {
+  PENDING
+  GRADED
+  LATE
+}
+
+model Wallet {
+  id        String   @id @default(uuid())
+  parentId  String   @unique
+  parent    ParentProfile @relation(fields: [parentId], references: [id])
+  balance   Float    @default(0.0)
+  virtualAccount String? @unique
+  transactions Transaction[]
+}
+
+model Transaction {
+  id        String   @id @default(uuid())
+  walletId  String
+  wallet    Wallet   @relation(fields: [walletId], references: [id])
+  amount    Float
+  type      String   // CREDIT, DEBIT
+  reference String   @unique
+  status    String   // PENDING, SUCCESS, FAILED
+  createdAt DateTime @default(now())
+}
+
+model SavedCard {
+  id            String   @id @default(uuid())
+  parentId      String
+  parent        ParentProfile @relation(fields: [parentId], references: [id])
+  authorizationCode String // Paystack authorization code
+  last4         String
+  brand         String   // e.g. "visa", "mastercard"
+  expMonth      String
+  expYear       String
+  bank          String?
+  signature     String?  // To prevent duplicate cards
+  email         String   // Email attached to the auth code
+  isDefault     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  @@unique([parentId, signature]) // Prevent saving same card multiple times for same user
+}
+
+model Fee {
+  id          String   @id @default(uuid())
+  title       String   // e.g. "Tuition Fee", "Uniform", "Bus Fee"
+  description String?
+  amount      Float
+  mandatory   Boolean  @default(true)
+  termId      String
+  term        Term     @relation(fields: [termId], references: [id])
+  classId     String?  // If null, applies to all classes (or specific logic)
+  class       Class?   @relation(fields: [classId], references: [id])
+  dueDate     DateTime?
+  payments    FeePayment[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model FeePayment {
+  id            String   @id @default(uuid())
+  studentId     String
+  student       StudentProfile @relation(fields: [studentId], references: [id])
+  feeId         String
+  fee           Fee      @relation(fields: [feeId], references: [id])
+  amountPaid    Float
+  status        PaymentStatus @default(PARTIAL) // PENDING, PARTIAL, COMPLETED
+  transactionId String?
+  transaction   Transaction? @relation(fields: [transactionId], references: [id])
+  paymentDate   DateTime @default(now())
+  
+  @@unique([studentId, feeId]) // One payment record per fee per student (can be updated for partial)
+}
+
+enum PaymentStatus {
+  PENDING
+  PARTIAL
+  COMPLETED
+}
+
+model Announcement {
+  id        String   @id @default(uuid())
+  title     String
+  content   String
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  classId   String?  // Optional: if null, it's a global announcement
+  class     Class?   @relation(fields: [classId], references: [id])
+  role      Role?    // Optional: targeted at a specific role
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Message {
+  id          String   @id @default(uuid())
+  content     String
+  senderId    String
+  sender      User     @relation("SentMessages", fields: [senderId], references: [id])
+  recipientId String
+  recipient   User     @relation("ReceivedMessages", fields: [recipientId], references: [id])
+  createdAt   DateTime @default(now())
+}
+
+model Attendance {
+  id        String @id @default(uuid())
+  studentId String
+  student   StudentProfile @relation(fields: [studentId], references: [id])
+  date      DateTime
+  status    String // PRESENT, ABSENT, LATE
+  createdAt DateTime @default(now())
+}
+
+model TimetableEntry {
+  id        String   @id @default(uuid())
+  classId   String
+  class     Class    @relation(fields: [classId], references: [id])
+  subjectId String
+  subject   Subject  @relation(fields: [subjectId], references: [id])
+  dayOfWeek Int      // 1-7 (Monday-Sunday)
+  startTime String   // "08:00"
+  endTime   String   // "09:00"
+  room      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  TEACHER
+  STUDENT
+  PARENT
+  ACCOUNTANT
+  HR
+  MEDICAL
+  SECURITY
+}

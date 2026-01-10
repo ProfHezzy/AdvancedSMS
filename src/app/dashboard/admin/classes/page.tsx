@@ -9,32 +9,79 @@ import {
     GraduationCap,
     BookOpen,
     MoreVertical,
-    Search
+    Search,
+    Loader2
 } from 'lucide-react';
-import { getClasses, createClass } from '@/actions/admin';
+import { getClasses, createClass, getTeachers } from '@/actions/admin';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import {
+    Select,
+} from "@/components/ui/select";
 
 export default function AdminClassesPage() {
     const [classes, setClasses] = useState<any[]>([]);
+    const [teachers, setTeachers] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const [formData, setFormData] = useState({
+        name: '',
+        teacherId: ''
+    });
 
     useEffect(() => {
-        fetchClasses();
+        fetchData();
     }, []);
 
-    async function fetchClasses() {
+    async function fetchData() {
         setIsLoading(true);
-        const res = await getClasses();
-        if (res.success && res.data) {
-            setClasses(res.data);
-        }
+        const [clsRes, teacherRes] = await Promise.all([
+            getClasses(),
+            getTeachers()
+        ]);
+
+        if (clsRes.success && clsRes.data) setClasses(clsRes.data);
+        if (teacherRes.success && teacherRes.data) setTeachers(teacherRes.data);
+
         setIsLoading(false);
     }
 
-    const handleCreate = () => {
-        toast.info('Opening class creation dialog...');
+    const handleCreate = async () => {
+        if (!formData.name) return toast.error('Class Name is required');
+
+        setIsLoading(true);
+        const res = await createClass({
+            name: formData.name,
+            teacherId: formData.teacherId || null
+        });
+
+        if (res.success) {
+            toast.success('Class created successfully');
+            setIsCreateOpen(false);
+            setFormData({ name: '', teacherId: '' });
+            fetchData();
+        } else {
+            toast.error(res.error || 'Failed to create class');
+        }
+        setIsLoading(false);
     };
+
+    const filteredClasses = classes.filter(cls =>
+        cls.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     return (
         <div className="p-8 space-y-8 animate-fade-in text-gray-900">
@@ -47,13 +94,54 @@ export default function AdminClassesPage() {
                         Manage class streams and assign form teachers.
                     </p>
                 </div>
-                <Button
-                    className="h-12 px-6 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-black shadow-lg shadow-brand-600/20 gap-2 btn-shine"
-                    onClick={handleCreate}
-                >
-                    <Plus className="w-5 h-5" />
-                    Add Class
-                </Button>
+
+                <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+                    <DialogTrigger asChild>
+                        <Button className="h-12 px-6 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-black shadow-lg shadow-brand-600/20 gap-2 btn-shine">
+                            <Plus className="w-5 h-5" />
+                            Add Class
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                            <DialogTitle>Create New Class</DialogTitle>
+                            <DialogDescription>
+                                Add a new class stream to the school hierarchy.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="name">Class Name</Label>
+                                <Input
+                                    id="name"
+                                    placeholder="e.g. JSS 1 A"
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Assigned Teacher (Optional)</Label>
+                                <Select
+                                    onChange={(e) => setFormData({ ...formData, teacherId: e.target.value })}
+                                    value={formData.teacherId}
+                                >
+                                    <option value="none">None</option>
+                                    {teachers.map((t) => (
+                                        <option key={t.id} value={t.id}>
+                                            {t.user.name || t.user.username}
+                                        </option>
+                                    ))}
+                                </Select>
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button onClick={handleCreate} disabled={isLoading}>
+                                {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                                Save Class
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
 
             <div className="relative">
@@ -61,17 +149,19 @@ export default function AdminClassesPage() {
                 <input
                     type="text"
                     placeholder="Search class..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full md:w-96 h-12 pl-12 pr-4 rounded-xl border border-brand-100 bg-white shadow-soft font-medium outline-none focus:ring-2 focus:ring-brand-500 transition-all"
                 />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {isLoading ? (
+                {isLoading && classes.length === 0 ? (
                     Array(8).fill(0).map((_, i) => (
                         <div key={i} className="h-64 rounded-3xl bg-brand-50/50 animate-pulse border border-brand-100" />
                     ))
-                ) : classes.length > 0 ? (
-                    classes.map((cls, idx) => (
+                ) : filteredClasses.length > 0 ? (
+                    filteredClasses.map((cls, idx) => (
                         <Card
                             key={cls.id}
                             className="group glass border-none shadow-soft hover:shadow-medium transition-all transform hover:-translate-y-1 overflow-hidden"
@@ -93,19 +183,19 @@ export default function AdminClassesPage() {
                                         {cls.name}
                                     </h3>
                                     <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
-                                        Level: {cls.level}
+                                        ID: {cls.id.substring(0, 8)}...
                                     </p>
                                 </div>
 
                                 <div className="space-y-3 pt-2">
                                     <div className="flex items-center gap-3 text-sm font-medium text-gray-600 bg-brand-50/50 p-2 rounded-lg">
                                         <Users className="w-4 h-4 text-brand-400" />
-                                        <span className="font-bold">35 Students</span>
+                                        <span className="font-bold">{cls._count?.students || 0} Students</span>
                                     </div>
                                     <div className="flex items-center gap-3 text-sm font-medium text-gray-600 bg-brand-50/50 p-2 rounded-lg">
                                         <GraduationCap className="w-4 h-4 text-brand-400" />
                                         <span className="font-bold truncate">
-                                            {cls.teacher?.user?.username || 'No Teacher Assigned'}
+                                            {cls.teacher?.user?.name || cls.teacher?.user?.username || 'No Teacher'}
                                         </span>
                                     </div>
                                 </div>
@@ -117,7 +207,7 @@ export default function AdminClassesPage() {
                         <Users className="w-12 h-12 text-brand-200" />
                         <h3 className="text-xl font-black text-gray-800 uppercase tracking-widest">No Classes Found</h3>
                         <p className="text-muted-foreground font-medium max-w-sm mx-auto mt-2 italic">
-                            Create your first class to begin enrollment.
+                            {searchQuery ? "No classes match your search." : "Create your first class to begin enrollment."}
                         </p>
                     </div>
                 )}

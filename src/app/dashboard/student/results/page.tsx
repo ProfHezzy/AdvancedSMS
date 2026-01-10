@@ -13,10 +13,14 @@ import {
     Search,
     BadgeCheck,
     AlertCircle,
-    BookOpen
+    BookOpen,
+    Smile,
+    Meh,
+    Frown
 } from 'lucide-react';
 import { getStudentReport } from '@/actions/results';
 import { getStudentProfile } from '@/actions/academic';
+import { getStudentRemark, getCurrentTerm } from '@/actions/remarks';
 import { useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
 
@@ -24,21 +28,45 @@ export default function StudentResultsPage() {
     const { data: session } = useSession();
     const [results, setResults] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
-    const [selectedTerm, setSelectedTerm] = useState('default-term-id');
+    const [selectedTerm, setSelectedTerm] = useState<string | null>(null);
+    const [behavioralRemark, setBehavioralRemark] = useState<any>(null);
 
     useEffect(() => {
         if (session?.user?.id) {
+            initData();
+        }
+    }, [session]);
+
+    useEffect(() => {
+        if (session?.user?.id && selectedTerm) {
             fetchResults();
         }
     }, [session, selectedTerm]);
 
+    async function initData() {
+        const termRes = await getCurrentTerm();
+        if (termRes.success && termRes.data) {
+            setSelectedTerm(termRes.data.id);
+        }
+    }
+
     async function fetchResults() {
+        if (!selectedTerm) return;
         setIsLoading(true);
         const profileRes = await getStudentProfile((session?.user as any).id);
         if (profileRes.success && profileRes.data) {
-            const resultsRes = await getStudentReport(profileRes.data.id, selectedTerm);
+            const [resultsRes, remarkRes] = await Promise.all([
+                getStudentReport(profileRes.data.id, selectedTerm),
+                getStudentRemark(profileRes.data.id, selectedTerm)
+            ]);
+
             if (resultsRes.success && resultsRes.data) {
                 setResults(resultsRes.data);
+            }
+            if (remarkRes.success && remarkRes.data) {
+                setBehavioralRemark(remarkRes.data);
+            } else {
+                setBehavioralRemark(null);
             }
         }
         setIsLoading(false);
@@ -98,11 +126,32 @@ export default function StudentResultsPage() {
                             </div>
                         </div>
 
-                        <div className="p-4 rounded-2xl bg-brand-600 text-white space-y-2 relative overflow-hidden">
-                            <Award className="absolute -right-4 -bottom-4 w-24 h-24 text-white/10 rotate-12" />
-                            <p className="text-[10px] font-black uppercase text-white/60">Principal's Remark</p>
-                            <p className="text-xs font-bold leading-relaxed">"Excellent focus this term. Outstanding performance in Science subjects. Keep it up!"</p>
-                        </div>
+                        {behavioralRemark ? (
+                            <div className="p-4 rounded-2xl bg-brand-600 text-white space-y-2 relative overflow-hidden">
+                                <Award className="absolute -right-4 -bottom-4 w-24 h-24 text-white/10 rotate-12" />
+                                <div className="flex items-center justify-between">
+                                    <p className="text-[10px] font-black uppercase text-white/60">Principal's Remark</p>
+                                    {behavioralRemark.rating === 'EXCELLENT' ? <Smile className="w-4 h-4 text-green-300" /> :
+                                        behavioralRemark.rating === 'AVERAGE' ? <Meh className="w-4 h-4 text-amber-300" /> :
+                                            <Frown className="w-4 h-4 text-rose-300" />}
+                                </div>
+                                <p className="text-xs font-bold leading-relaxed">"{behavioralRemark.observation}"</p>
+                                {behavioralRemark.tags?.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mt-2">
+                                        {behavioralRemark.tags.map((tag: string) => (
+                                            <span key={tag} className="text-[8px] bg-white/20 px-1.5 py-0.5 rounded-full font-bold">
+                                                {tag}
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="p-4 rounded-2xl bg-gray-100 text-gray-500 space-y-2 relative overflow-hidden">
+                                <p className="text-[10px] font-black uppercase text-gray-400">Principal's Remark</p>
+                                <p className="text-xs font-bold italic">No remarks logged for this term yet.</p>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 
@@ -151,7 +200,7 @@ export default function StudentResultsPage() {
                                                             <div className="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center text-brand-600 border border-brand-100/50">
                                                                 <BookOpen className="w-4 h-4" />
                                                             </div>
-                                                            <span className="text-sm font-bold text-gray-900 group-hover:text-brand-700 transition-colors">{res.subject.name}</span>
+                                                            <span className="text-sm font-bold text-gray-900 group-hover:text-brand-700 transition-colors">{res.subject?.name || 'N/A'}</span>
                                                         </div>
                                                     </td>
                                                     <td className="px-6 py-4 text-sm font-bold text-gray-600">{res.caScore}</td>

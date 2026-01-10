@@ -20,6 +20,7 @@ import {
 import { getAllUsers, updateUserRole } from '@/actions/admin';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { StaffOnboardingModal } from '@/components/staff/StaffOnboardingModal';
 
 export default function AdminUserManagementPage() {
     const [users, setUsers] = useState<any[]>([]);
@@ -64,10 +65,7 @@ export default function AdminUserManagementPage() {
                         Manage institutional accounts, roles, and security permissions.
                     </p>
                 </div>
-                <Button className="h-12 px-6 rounded-xl bg-brand-600 hover:bg-brand-700 font-black shadow-lg shadow-brand-600/20 gap-2">
-                    <UserPlus className="w-5 h-5" />
-                    Provision Account
-                </Button>
+                <StaffOnboardingModal onSuccess={fetchUsers} />
             </div>
 
             <div className="flex flex-col md:flex-row gap-4">

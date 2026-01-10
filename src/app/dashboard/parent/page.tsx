@@ -18,27 +18,39 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getWards } from '@/actions/parent';
+import { getParentDashboardStats } from '@/actions/dashboard'; // NEW IMPORT
 import { useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
 
 export default function ParentDashboardPage() {
     const { data: session } = useSession();
     const [wards, setWards] = useState<any[]>([]);
+    const [statsData, setStatsData] = useState<any>(null); // NEW STATE
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
         if (session?.user?.id) {
-            fetchWards();
+            fetchDashboardData();
         }
     }, [session]);
 
-    async function fetchWards() {
+    async function fetchDashboardData() {
         setIsLoading(true);
-        // Fallback to userId if parentProfile id not immediately clear from session wrapper
-        // But getWards expects userId usually if the session id is user.id
-        const res = await getWards((session?.user as any).id);
-        if (res.success && res.data) {
-            setWards(res.data);
+        try {
+            const userId = (session?.user as any).id;
+            const [wardsRes, statsRes] = await Promise.all([
+                getWards(userId),
+                getParentDashboardStats(userId)
+            ]);
+
+            if (wardsRes.success && wardsRes.data) {
+                setWards(wardsRes.data);
+            }
+            if (statsRes.success && statsRes.data) {
+                setStatsData(statsRes.data);
+            }
+        } catch (error) {
+            console.error("Failed to fetch dashboard data", error);
         }
         setIsLoading(false);
     }
@@ -46,28 +58,28 @@ export default function ParentDashboardPage() {
     const stats = [
         {
             title: 'Wallet Balance',
-            value: '₦54,200', // Mock for now, would be fetched from Wallet
+            value: statsData ? `₦${statsData.balance.toLocaleString()}` : '...',
             change: 'Available funds',
             icon: Wallet,
             color: 'from-emerald-500 to-emerald-600',
         },
         {
             title: 'Wards Enrolled',
-            value: wards.length.toString(),
+            value: statsData ? statsData.wardsCount.toString() : wards.length.toString(),
             change: 'Active students',
             icon: UserCheck,
             color: 'from-blue-500 to-blue-600',
         },
         {
             title: 'Pending Fees',
-            value: '₦12,000',
-            change: 'Due in 5 days',
+            value: statsData ? `₦${statsData.pendingFeesAmount.toLocaleString()}` : '...',
+            change: statsData ? `${statsData.pendingFeesCount} invoices due` : 'Checking...',
             icon: CreditCard,
             color: 'from-rose-500 to-rose-600',
         },
         {
             title: 'Unread Alerts',
-            value: '3',
+            value: statsData ? statsData.unreadAlerts.toString() : '0',
             change: 'Messages & Results',
             icon: Bell,
             color: 'from-amber-500 to-amber-600',
@@ -111,26 +123,28 @@ export default function ParentDashboardPage() {
                 {stats.map((stat, index) => {
                     const Icon = stat.icon;
                     return (
-                        <Card
-                            key={stat.title}
-                            className="overflow-hidden animate-scale-in border-none shadow-soft hover:shadow-medium transition-all duration-300 glass group"
-                            style={{ animationDelay: `${index * 100}ms` }}
-                        >
-                            <CardHeader className="flex flex-row items-center justify-between pb-2">
-                                <CardTitle className="text-xs font-black text-muted-foreground uppercase tracking-widest">
-                                    {stat.title}
-                                </CardTitle>
-                                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-md group-hover:scale-110 transition-transform`}>
-                                    <Icon className="w-5 h-5 text-white" />
-                                </div>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-3xl font-black text-gray-800">{stat.value}</div>
-                                <p className="text-[10px] font-bold text-muted-foreground mt-1 uppercase tracking-wider">
-                                    {stat.change}
-                                </p>
-                            </CardContent>
-                        </Card>
+
+                        <Link href={stat.title === 'Pending Fees' ? '/dashboard/parent/fees' : '#'} key={stat.title} className={stat.title !== 'Pending Fees' ? 'cursor-default pointer-events-none' : ''}>
+                            <Card
+                                className="overflow-hidden animate-scale-in border-none shadow-soft hover:shadow-medium transition-all duration-300 glass group"
+                                style={{ animationDelay: `${index * 100}ms` }}
+                            >
+                                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                                    <CardTitle className="text-xs font-black text-muted-foreground uppercase tracking-widest">
+                                        {stat.title}
+                                    </CardTitle>
+                                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-md group-hover:scale-110 transition-transform`}>
+                                        <Icon className="w-5 h-5 text-white" />
+                                    </div>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-3xl font-black text-gray-800">{stat.value}</div>
+                                    <p className="text-[10px] font-bold text-muted-foreground mt-1 uppercase tracking-wider">
+                                        {stat.change}
+                                    </p>
+                                </CardContent>
+                            </Card>
+                        </Link>
                     );
                 })}
             </div>
@@ -189,21 +203,21 @@ export default function ParentDashboardPage() {
                         <History className="w-5 h-5 text-brand-300" />
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        {[
-                            { title: 'First Term Fees', amount: '-₦45,000', date: 'Jan 2, 2026', type: 'debit' },
-                            { title: 'Wallet Funding', amount: '+₦50,000', date: 'Jan 1, 2026', type: 'credit' },
-                            { title: 'Sport Levy', amount: '-₦5,000', date: 'Dec 20, 2025', type: 'debit' },
-                        ].map((tx, i) => (
-                            <div key={i} className="flex justify-between items-center py-3 border-b border-gray-100 last:border-0 hover:bg-gray-50/50 px-2 rounded-lg transition-colors">
-                                <div>
-                                    <p className="text-xs font-black text-gray-800 uppercase tracking-tight">{tx.title}</p>
-                                    <p className="text-[10px] font-bold text-muted-foreground">{tx.date}</p>
+                        {(statsData?.recentTransactions || []).length > 0 ? (
+                            statsData.recentTransactions.map((tx: any, i: number) => (
+                                <div key={i} className="flex justify-between items-center py-3 border-b border-gray-100 last:border-0 hover:bg-gray-50/50 px-2 rounded-lg transition-colors">
+                                    <div>
+                                        <p className="text-xs font-black text-gray-800 uppercase tracking-tight">{tx.title}</p>
+                                        <p className="text-[10px] font-bold text-muted-foreground">{tx.date}</p>
+                                    </div>
+                                    <div className={`text-xs font-black ${tx.type === 'credit' ? 'text-green-600' : 'text-rose-600'}`}>
+                                        {tx.amount}
+                                    </div>
                                 </div>
-                                <div className={`text-xs font-black ${tx.type === 'credit' ? 'text-green-600' : 'text-rose-600'}`}>
-                                    {tx.amount}
-                                </div>
-                            </div>
-                        ))}
+                            ))
+                        ) : (
+                            <div className="py-8 text-center text-muted-foreground text-xs font-medium">No recent transactions</div>
+                        )}
                         <Link href="/dashboard/parent/wallet" className="w-full mt-4 flex items-center justify-center gap-2 text-xs font-black text-brand-600 hover:bg-brand-50 py-3 rounded-xl border border-brand-100 transition-all uppercase tracking-widest">
                             Full Transaction History
                             <ArrowUpRight className="w-3 h-3" />

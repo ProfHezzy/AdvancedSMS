@@ -27,6 +27,7 @@ import {
     LifeBuoy,
     HeartPulse,
     Activity,
+    UserPlus,
     UserMinus,
     DollarSign,
     Receipt,
@@ -72,6 +73,7 @@ export const TEACHER_NAV: NavGroup[] = [
             { title: 'My Classes', href: '/dashboard/teacher/classes', icon: Users },
             { title: 'Class Lists', href: '/dashboard/teacher/class-lists', icon: ListTodo },
             { title: 'Student Profiles', href: '/dashboard/students', icon: UserCircle },
+            { title: 'Student Admission', href: '/dashboard/teacher/students/admission', icon: UserPlus },
             { title: 'Attendance', href: '/dashboard/teacher/attendance', icon: CheckCircle2 },
             { title: 'Behavior / Remarks', href: '/dashboard/teacher/remarks', icon: PenTool },
         ]
@@ -177,6 +179,7 @@ export const STUDENT_NAV: NavGroup[] = [
         items: [
             { title: 'Subjects', href: '/dashboard/student/subjects', icon: BookOpen },
             { title: 'Timetable', href: '/dashboard/student/timetable', icon: Calendar },
+            { title: 'Attendance', href: '/dashboard/student/attendance', icon: CheckCircle2 },
             { title: 'Teachers', href: '/dashboard/student/teachers', icon: Users },
         ]
     },
@@ -278,7 +281,7 @@ export const PARENT_NAV: NavGroup[] = [
         items: [
             { title: 'Wallet Overview', href: '/dashboard/parent/wallet', icon: Wallet },
             { title: 'Fund Wallet', href: '/dashboard/parent/wallet/fund', icon: DollarSign },
-            { title: 'Pay Fees', href: '/dashboard/parent/fees/pay', icon: Receipt },
+            { title: 'Pay Fees', href: '/dashboard/parent/fees', icon: Receipt },
             { title: 'Payment History', href: '/dashboard/parent/wallet/transactions', icon: History },
         ]
     },
@@ -448,6 +451,7 @@ export const ADMIN_NAV: NavGroup[] = [
         group: 'Users & Roles',
         items: [
             { title: 'User Management', href: '/dashboard/admin/users', icon: Users },
+            { title: 'Student Admission', href: '/dashboard/admin/admission', icon: UserPlus },
             { title: 'Role Management', href: '/dashboard/admin/roles', icon: Shield },
             { title: 'Permissions', href: '/dashboard/admin/permissions', icon: LockKeyhole },
         ]
@@ -459,6 +463,15 @@ export const ADMIN_NAV: NavGroup[] = [
             { title: 'Terms', href: '/dashboard/admin/terms', icon: Clock },
             { title: 'Classes', href: '/dashboard/admin/classes', icon: Users },
             { title: 'Subjects', href: '/dashboard/admin/subjects', icon: BookOpen },
+            { title: 'Timetable', href: '/dashboard/admin/timetable', icon: Calendar },
+        ]
+    },
+    {
+        group: 'Settings',
+        items: [
+            { title: 'Profile', href: '/dashboard/settings/profile', icon: UserCircle },
+            { title: 'Security', href: '/dashboard/settings/security', icon: Shield },
+            { title: 'Preferences', href: '/dashboard/settings/notifications', icon: Settings },
         ]
     }
 ];

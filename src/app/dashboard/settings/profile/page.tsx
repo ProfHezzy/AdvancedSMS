@@ -1,5 +1,7 @@
 'use client';
 
+import { useState, useEffect, useRef } from 'react';
+import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -12,14 +14,91 @@ import {
     Phone,
     MapPin,
     Upload,
-    Save
+    Save,
+    Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getUserProfile, updateProfile } from '@/actions/profile';
 
 export default function ProfilePage() {
-    const handleSave = () => {
-        toast.success('Profile updated successfully!');
+    const { data: session, update: updateSession } = useSession();
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const [form, setForm] = useState({
+        name: '',
+        email: '',
+        image: '',
+        phone: '', // These might need mapping to specific profile models later
+        address: '',
+        bio: ''
+    });
+
+    useEffect(() => {
+        if (session?.user?.id) {
+            fetchProfile();
+        }
+    }, [session]);
+
+    async function fetchProfile() {
+        setIsLoading(true);
+        const res = await getUserProfile((session?.user as any).id);
+        if (res.success && res.data) {
+            setForm({
+                name: res.data.name || res.data.username || '',
+                email: res.data.email || '',
+                image: res.data.image || '',
+                phone: '', // Mock for now as it's in sub-profiles
+                address: '',
+                bio: ''
+            });
+        }
+        setIsLoading(false);
+    }
+
+    const handleSave = async () => {
+        if (!session?.user?.id) return;
+        setIsSaving(true);
+        const res = await updateProfile((session.user as any).id, {
+            name: form.name,
+            email: form.email,
+            image: form.image
+        });
+
+        if (res.success) {
+            toast.success('Profile updated successfully!');
+            await updateSession(); // Triggers server-side re-fetch in jwt callback
+        } else {
+            toast.error(res.error);
+        }
+        setIsSaving(false);
     };
+
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (file.size > 1024 * 1024) { // 1MB limit for base64
+            toast.error('Image too large. Please use a file under 1MB.');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setForm(prev => ({ ...prev, image: reader.result as string }));
+            toast.success('Preview updated. Don\'t forget to Save!');
+        };
+        reader.readAsDataURL(file);
+    };
+
+    if (isLoading) {
+        return (
+            <div className="flex h-[80vh] items-center justify-center">
+                <Loader2 className="w-12 h-12 text-brand-600 animate-spin" />
+            </div>
+        );
+    }
 
     return (
         <div className="p-8 space-y-8 animate-fade-in text-gray-900 max-w-4xl mx-auto">
@@ -38,16 +117,35 @@ export default function ProfilePage() {
                     <CardTitle className="font-black text-gray-800 uppercase tracking-widest">Profile Picture</CardTitle>
                 </CardHeader>
                 <CardContent className="flex items-center gap-6">
-                    <Avatar className="w-24 h-24 border-4 border-white shadow-lg">
-                        <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=Teacher" />
-                        <AvatarFallback className="text-3xl font-black">T</AvatarFallback>
+                    <Avatar className="w-24 h-24 border-4 border-white shadow-lg overflow-hidden relative group">
+                        {form.image ? (
+                            <img src={form.image} alt="Profile" className="w-full h-full object-cover" />
+                        ) : (
+                            <AvatarFallback className="text-3xl font-black bg-brand-50 text-brand-700">
+                                {form.name ? form.name[0].toUpperCase() : 'U'}
+                            </AvatarFallback>
+                        )}
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                            <Upload className="w-6 h-6 text-white" />
+                        </div>
                     </Avatar>
                     <div className="flex-1">
                         <p className="text-sm font-medium text-gray-600 mb-3">
-                            Upload a new profile picture. Recommended size: 400x400px
+                            Upload a new profile picture. Recommended size: 400x400px.
                         </p>
-                        <Button variant="outline" className="font-bold border-brand-200 text-brand-700 gap-2">
-                            <Upload className="w-4 h-4" /> Upload Photo
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            className="hidden"
+                            accept="image/*"
+                            onChange={handleImageUpload}
+                        />
+                        <Button
+                            variant="outline"
+                            className="font-bold border-brand-200 text-brand-700 gap-2 rounded-xl"
+                            onClick={() => fileInputRef.current?.click()}
+                        >
+                            <Upload className="w-4 h-4" /> Change Photo
                         </Button>
                     </div>
                 </CardContent>
@@ -59,79 +157,46 @@ export default function ProfilePage() {
                     <CardTitle className="font-black text-gray-800 uppercase tracking-widest">Personal Information</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <Label className="flex items-center gap-2 font-bold text-gray-700">
-                                <User className="w-4 h-4" /> First Name
-                            </Label>
-                            <Input defaultValue="John" className="h-12" />
-                        </div>
-                        <div className="space-y-2">
-                            <Label className="flex items-center gap-2 font-bold text-gray-700">
-                                <User className="w-4 h-4" /> Last Name
-                            </Label>
-                            <Input defaultValue="Doe" className="h-12" />
-                        </div>
-                    </div>
                     <div className="space-y-2">
                         <Label className="flex items-center gap-2 font-bold text-gray-700">
-                            <Mail className="w-4 h-4" /> Email Address
+                            <User className="w-4 h-4 text-brand-600" /> Full Display Name
                         </Label>
-                        <Input type="email" defaultValue="teacher@school.com" className="h-12" />
-                    </div>
-                    <div className="space-y-2">
-                        <Label className="flex items-center gap-2 font-bold text-gray-700">
-                            <Phone className="w-4 h-4" /> Phone Number
-                        </Label>
-                        <Input type="tel" defaultValue="+234 801 234 5678" className="h-12" />
-                    </div>
-                    <div className="space-y-2">
-                        <Label className="flex items-center gap-2 font-bold text-gray-700">
-                            <MapPin className="w-4 h-4" /> Address
-                        </Label>
-                        <Textarea defaultValue="123 School Street, Lagos, Nigeria" className="min-h-[80px]" />
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* Professional Information */}
-            <Card className="glass border-none shadow-soft">
-                <CardHeader>
-                    <CardTitle className="font-black text-gray-800 uppercase tracking-widest">Professional Information</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <Label className="font-bold text-gray-700">Staff ID</Label>
-                            <Input defaultValue="TCH-2025-001" disabled className="h-12 bg-gray-50" />
-                        </div>
-                        <div className="space-y-2">
-                            <Label className="font-bold text-gray-700">Department</Label>
-                            <Input defaultValue="Mathematics" disabled className="h-12 bg-gray-50" />
-                        </div>
-                    </div>
-                    <div className="space-y-2">
-                        <Label className="font-bold text-gray-700">Qualifications</Label>
-                        <Input defaultValue="B.Sc. Mathematics, M.Ed. Education" className="h-12" />
-                    </div>
-                    <div className="space-y-2">
-                        <Label className="font-bold text-gray-700">Bio</Label>
-                        <Textarea
-                            placeholder="Tell us about yourself..."
-                            defaultValue="Passionate mathematics teacher with 10+ years of experience in secondary education."
-                            className="min-h-[120px]"
+                        <Input
+                            value={form.name}
+                            onChange={e => setForm({ ...form, name: e.target.value })}
+                            className="h-12 rounded-xl border-brand-100 text-gray-900"
                         />
+                    </div>
+                    <div className="space-y-2">
+                        <Label className="flex items-center gap-2 font-bold text-gray-700">
+                            <Mail className="w-4 h-4 text-brand-600" /> Email Address
+                        </Label>
+                        <Input
+                            type="email"
+                            value={form.email}
+                            onChange={e => setForm({ ...form, email: e.target.value })}
+                            className="h-12 rounded-xl bg-white border-brand-100 text-gray-900"
+                        />
+                        <p className="text-[10px] text-muted-foreground font-bold italic">Email is required for notifications and payments.</p>
                     </div>
                 </CardContent>
             </Card>
 
             {/* Save Button */}
-            <div className="flex justify-end">
+            <div className="flex justify-end sticky bottom-8 z-10">
                 <Button
                     onClick={handleSave}
-                    className="h-14 px-8 bg-brand-600 hover:bg-brand-700 text-white font-black text-lg rounded-xl shadow-lg shadow-brand-600/20 gap-2 btn-shine"
+                    disabled={isSaving}
+                    className="h-14 px-10 bg-brand-600 hover:bg-brand-700 text-white font-black text-lg rounded-2xl shadow-xl shadow-brand-600/30 gap-3 group active:scale-95 transition-all"
                 >
-                    <Save className="w-5 h-5" /> Save Changes
+                    {isSaving ? (
+                        <Loader2 className="w-6 h-6 animate-spin" />
+                    ) : (
+                        <>
+                            <Save className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                            Synchronize Changes
+                        </>
+                    )}
                 </Button>
             </div>
         </div>

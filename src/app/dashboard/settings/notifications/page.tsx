@@ -1,173 +1,95 @@
 'use client';
 
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import {
-    Bell,
-    Mail,
-    Smartphone,
-    Save
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Bell, Mail, MessageSquare, Monitor, Globe, Save } from 'lucide-react';
 import { toast } from 'sonner';
 
-export default function NotificationsPage() {
-    const [preferences, setPreferences] = useState({
-        email: {
-            assignments: true,
-            results: true,
-            messages: true,
-            announcements: false,
-            systemAlerts: true
-        },
-        push: {
-            assignments: true,
-            results: true,
-            messages: true,
-            announcements: true,
-            systemAlerts: true
-        },
-        inApp: {
-            assignments: true,
-            results: true,
-            messages: true,
-            announcements: true,
-            systemAlerts: true
-        }
-    });
-
-    const togglePreference = (channel: 'email' | 'push' | 'inApp', category: string) => {
-        setPreferences(prev => ({
-            ...prev,
-            [channel]: {
-                ...prev[channel],
-                [category]: !prev[channel][category as keyof typeof prev.email]
-            }
-        }));
-    };
-
+export default function NotificationPreferencesPage() {
     const handleSave = () => {
-        toast.success('Notification preferences saved!');
+        toast.success('Preferences saved!');
     };
-
-    const categories = [
-        { key: 'assignments', label: 'Assignments & Tests', description: 'New assignments, submissions, and grading updates' },
-        { key: 'results', label: 'Results & Performance', description: 'Result compilation, grade releases, and analytics' },
-        { key: 'messages', label: 'Messages', description: 'Direct messages from parents and students' },
-        { key: 'announcements', label: 'Announcements', description: 'School-wide notices and updates' },
-        { key: 'systemAlerts', label: 'System Alerts', description: 'Security alerts and system notifications' },
-    ];
 
     return (
-        <div className="p-8 space-y-8 animate-fade-in text-gray-900 max-w-5xl mx-auto">
+        <div className="p-8 space-y-8 max-w-4xl mx-auto animate-fade-in text-gray-900">
             <div>
                 <h1 className="text-4xl font-black bg-gradient-to-r from-brand-600 to-brand-800 bg-clip-text text-transparent uppercase tracking-tight">
-                    Notification Preferences
+                    Preferences
                 </h1>
-                <p className="text-muted-foreground mt-2 font-medium">
-                    Customize how you receive notifications across different channels.
+                <p className="text-muted-foreground mt-2 font-medium italic">
+                    Control how you receive alerts and customize your dashboard experience.
                 </p>
             </div>
 
-            <Card className="glass border-none shadow-soft overflow-hidden">
-                <CardContent className="p-0">
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead className="bg-gray-50 border-b border-gray-100">
-                                <tr>
-                                    <th className="text-left p-4 font-black uppercase tracking-widest text-xs text-gray-500">
-                                        Notification Type
-                                    </th>
-                                    <th className="text-center p-4 font-black uppercase tracking-widest text-xs text-gray-500">
-                                        <div className="flex flex-col items-center gap-1">
-                                            <Mail className="w-5 h-5 text-blue-600" />
-                                            Email
-                                        </div>
-                                    </th>
-                                    <th className="text-center p-4 font-black uppercase tracking-widest text-xs text-gray-500">
-                                        <div className="flex flex-col items-center gap-1">
-                                            <Smartphone className="w-5 h-5 text-green-600" />
-                                            Push
-                                        </div>
-                                    </th>
-                                    <th className="text-center p-4 font-black uppercase tracking-widest text-xs text-gray-500">
-                                        <div className="flex flex-col items-center gap-1">
-                                            <Bell className="w-5 h-5 text-purple-600" />
-                                            In-App
-                                        </div>
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {categories.map((category, index) => (
-                                    <tr key={category.key} className={cn(
-                                        "border-b border-gray-100 hover:bg-gray-50 transition-colors",
-                                        index % 2 === 0 ? "bg-white" : "bg-gray-50/50"
-                                    )}>
-                                        <td className="p-4">
-                                            <div>
-                                                <p className="font-bold text-gray-900">{category.label}</p>
-                                                <p className="text-xs text-gray-500 font-medium mt-1">{category.description}</p>
-                                            </div>
-                                        </td>
-                                        <td className="p-4 text-center">
-                                            <button
-                                                onClick={() => togglePreference('email', category.key)}
-                                                className={cn(
-                                                    "w-12 h-6 rounded-full transition-colors relative",
-                                                    preferences.email[category.key as keyof typeof preferences.email] ? "bg-blue-600" : "bg-gray-200"
-                                                )}
-                                            >
-                                                <span className={cn(
-                                                    "absolute top-1 w-4 h-4 bg-white rounded-full transition-transform",
-                                                    preferences.email[category.key as keyof typeof preferences.email] ? "right-1" : "left-1"
-                                                )} />
-                                            </button>
-                                        </td>
-                                        <td className="p-4 text-center">
-                                            <button
-                                                onClick={() => togglePreference('push', category.key)}
-                                                className={cn(
-                                                    "w-12 h-6 rounded-full transition-colors relative",
-                                                    preferences.push[category.key as keyof typeof preferences.push] ? "bg-green-600" : "bg-gray-200"
-                                                )}
-                                            >
-                                                <span className={cn(
-                                                    "absolute top-1 w-4 h-4 bg-white rounded-full transition-transform",
-                                                    preferences.push[category.key as keyof typeof preferences.push] ? "right-1" : "left-1"
-                                                )} />
-                                            </button>
-                                        </td>
-                                        <td className="p-4 text-center">
-                                            <button
-                                                onClick={() => togglePreference('inApp', category.key)}
-                                                className={cn(
-                                                    "w-12 h-6 rounded-full transition-colors relative",
-                                                    preferences.inApp[category.key as keyof typeof preferences.inApp] ? "bg-purple-600" : "bg-gray-200"
-                                                )}
-                                            >
-                                                <span className={cn(
-                                                    "absolute top-1 w-4 h-4 bg-white rounded-full transition-transform",
-                                                    preferences.inApp[category.key as keyof typeof preferences.inApp] ? "right-1" : "left-1"
-                                                )} />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </CardContent>
-            </Card>
+            <div className="grid grid-cols-1 gap-8">
+                <Card className="glass border-none shadow-soft">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 font-black uppercase tracking-widest text-brand-700">
+                            <Bell className="w-5 h-5" /> Notification Channels
+                        </CardTitle>
+                        <CardDescription>Choose where you want to be notified.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <Mail className="w-5 h-5 text-gray-400" />
+                                <Label className="font-bold cursor-pointer" htmlFor="email-notif">Email Notifications</Label>
+                            </div>
+                            <Switch id="email-notif" defaultChecked />
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <Monitor className="w-5 h-5 text-gray-400" />
+                                <Label className="font-bold cursor-pointer" htmlFor="push-notif">Push Notifications</Label>
+                            </div>
+                            <Switch id="push-notif" defaultChecked />
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <MessageSquare className="w-5 h-5 text-gray-400" />
+                                <Label className="font-bold cursor-pointer" htmlFor="sms-notif">SMS Alerts</Label>
+                            </div>
+                            <Switch id="sms-notif" />
+                        </div>
+                    </CardContent>
+                </Card>
 
-            <div className="flex justify-end">
-                <Button
-                    onClick={handleSave}
-                    className="h-14 px-8 bg-brand-600 hover:bg-brand-700 text-white font-black text-lg rounded-xl shadow-lg shadow-brand-600/20 gap-2 btn-shine"
-                >
-                    <Save className="w-5 h-5" /> Save Preferences
-                </Button>
+                <Card className="glass border-none shadow-soft">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 font-black uppercase tracking-widest text-brand-700">
+                            <Globe className="w-5 h-5" /> System Localization
+                        </CardTitle>
+                        <CardDescription>Adjust your language and time zone.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <Label className="font-bold">System Language</Label>
+                                <select className="w-full h-11 px-3 rounded-xl border border-brand-100 bg-white font-medium outline-none focus:ring-2 focus:ring-brand-500">
+                                    <option>English (US)</option>
+                                    <option>English (UK)</option>
+                                    <option>French</option>
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="font-bold">Time Zone</Label>
+                                <select className="w-full h-11 px-3 rounded-xl border border-brand-100 bg-white font-medium outline-none focus:ring-2 focus:ring-brand-500">
+                                    <option>UTC+01:00 (Lagos)</option>
+                                    <option>UTC+00:00 (London)</option>
+                                    <option>UTC-05:00 (New York)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <div className="flex justify-end sticky bottom-8 z-10">
+                    <Button onClick={handleSave} className="h-14 px-10 bg-brand-600 hover:bg-brand-700 text-white font-black text-lg rounded-2xl shadow-xl shadow-brand-600/30 gap-2 active:scale-95 transition-all">
+                        <Save className="w-6 h-6" /> Save Preferences
+                    </Button>
+                </div>
             </div>
         </div>
     );

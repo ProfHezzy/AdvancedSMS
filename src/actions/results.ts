@@ -3,6 +3,7 @@
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { v4 as uuidv4 } from 'uuid';
+import { calculateGrade, calculateTotal, validateScore, calculateCGPA } from '@/lib/grade-calculator';
 
 /**
  * Assessment & Exam Management
@@ -49,14 +50,20 @@ export async function compileResults(data: {
     examScore: number;
 }) {
     try {
-        const total = data.caScore + data.examScore;
-        let grade = 'F';
+        // Validate CA score (max 40)
+        const caValidation = validateScore(data.caScore, 40, 'CA Score');
+        if (!caValidation.valid) {
+            return { success: false, error: caValidation.error };
+        }
 
-        if (total >= 70) grade = 'A';
-        else if (total >= 60) grade = 'B';
-        else if (total >= 50) grade = 'C';
-        else if (total >= 45) grade = 'D';
-        else if (total >= 40) grade = 'E';
+        // Validate Exam score (max 60)
+        const examValidation = validateScore(data.examScore, 60, 'Exam Score');
+        if (!examValidation.valid) {
+            return { success: false, error: examValidation.error };
+        }
+
+        const total = calculateTotal(data.caScore, data.examScore);
+        const { grade } = calculateGrade(total);
 
         const result = await prisma.result.upsert({
             where: {
@@ -94,13 +101,59 @@ export async function compileResults(data: {
 
 export async function saveResults(results: any[]) {
     try {
-        await Promise.all(results.map(r => compileResults(r)));
+        const resultPromises = results.map(r => compileResults(r));
+        const responses = await Promise.all(resultPromises);
+
+        // Check if any failed
+        const failed = responses.filter(r => !r.success);
+        if (failed.length > 0) {
+            return {
+                success: false,
+                error: `${failed.length} result(s) failed to save`,
+                details: failed
+            };
+        }
+
         revalidatePath('/dashboard/teacher/results');
         revalidatePath('/dashboard/results');
-        return { success: true };
+        return { success: true, message: `${results.length} results saved successfully` };
     } catch (error) {
         console.error('Failed to save bulk results:', error);
         return { success: false, error: 'Failed to save bulk results.' };
+    }
+}
+
+/**
+ * Get class results for a specific subject and term
+ */
+export async function getClassResults(classId: string, subjectId: string, termId: string) {
+    try {
+        const students = await prisma.studentProfile.findMany({
+            where: { classId },
+            include: {
+                user: true,
+                results: {
+                    where: { subjectId, termId }
+                }
+            },
+            orderBy: {
+                user: { name: 'asc' }
+            }
+        });
+
+        const formatted = students.map((s: any) => ({
+            studentId: s.id,
+            studentName: s.user.name || s.user.username,
+            caScore: s.results[0]?.caScore || 0,
+            examScore: s.results[0]?.examScore || 0,
+            total: s.results[0]?.total || 0,
+            grade: s.results[0]?.grade || '-'
+        }));
+
+        return { success: true, data: formatted };
+    } catch (error) {
+        console.error('Failed to fetch class results:', error);
+        return { success: false, error: 'Failed to retrieve class results.' };
     }
 }
 
@@ -147,7 +200,7 @@ export async function getResultsBySubject(subjectId: string, termId: string, cla
             }
         });
 
-        const formatted = students.map(s => ({
+        const formatted = students.map((s: any) => ({
             id: s.id,
             name: s.user.username,
             caScore: s.results[0]?.caScore || 0,

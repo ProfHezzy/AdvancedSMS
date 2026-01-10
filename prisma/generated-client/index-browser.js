@@ -127,6 +127,8 @@ exports.Prisma.UserScalarFieldEnum = {
   username: 'username',
   email: 'email',
   password: 'password',
+  name: 'name',
+  image: 'image',
   role: 'role',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
@@ -248,6 +250,44 @@ exports.Prisma.TransactionScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.SavedCardScalarFieldEnum = {
+  id: 'id',
+  parentId: 'parentId',
+  authorizationCode: 'authorizationCode',
+  last4: 'last4',
+  brand: 'brand',
+  expMonth: 'expMonth',
+  expYear: 'expYear',
+  bank: 'bank',
+  signature: 'signature',
+  email: 'email',
+  isDefault: 'isDefault',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.FeeScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  description: 'description',
+  amount: 'amount',
+  mandatory: 'mandatory',
+  termId: 'termId',
+  classId: 'classId',
+  dueDate: 'dueDate',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.FeePaymentScalarFieldEnum = {
+  id: 'id',
+  studentId: 'studentId',
+  feeId: 'feeId',
+  amountPaid: 'amountPaid',
+  status: 'status',
+  transactionId: 'transactionId',
+  paymentDate: 'paymentDate'
+};
+
 exports.Prisma.AnnouncementScalarFieldEnum = {
   id: 'id',
   title: 'title',
@@ -331,6 +371,12 @@ exports.SubmissionStatus = exports.$Enums.SubmissionStatus = {
   LATE: 'LATE'
 };
 
+exports.PaymentStatus = exports.$Enums.PaymentStatus = {
+  PENDING: 'PENDING',
+  PARTIAL: 'PARTIAL',
+  COMPLETED: 'COMPLETED'
+};
+
 exports.Prisma.ModelName = {
   User: 'User',
   StudentProfile: 'StudentProfile',
@@ -347,6 +393,9 @@ exports.Prisma.ModelName = {
   Submission: 'Submission',
   Wallet: 'Wallet',
   Transaction: 'Transaction',
+  SavedCard: 'SavedCard',
+  Fee: 'Fee',
+  FeePayment: 'FeePayment',
   Announcement: 'Announcement',
   Message: 'Message',
   Attendance: 'Attendance',

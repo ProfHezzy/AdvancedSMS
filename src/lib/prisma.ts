@@ -1,4 +1,4 @@
-import { PrismaClient } from '../../prisma/generated-client'
+import { PrismaClient } from '@prisma/client'
 
 const prismaClientSingleton = () => {
   return new PrismaClient()
@@ -11,8 +11,7 @@ const globalForPrisma = globalThis as unknown as {
 }
 
 // Force a new client for a moment to break the global cache
-const prisma = prismaClientSingleton()
-// const prisma = globalForPrisma.prisma ?? prismaClientSingleton()
+const prisma = globalForPrisma.prisma ?? prismaClientSingleton()
 
 export default prisma
 

@@ -6,6 +6,9 @@ import { Toaster } from "sonner";
 export const metadata: Metadata = {
   title: "ASMS - Advanced School Management System",
   description: "Enterprise-grade school management platform",
+  icons: {
+    icon: "/logo.jpg",
+  },
 };
 
 export default function RootLayout({

@@ -2,6 +2,7 @@
 
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { getStudentInvoices } from './finance';
 
 /**
  * Ward Management
@@ -64,24 +65,8 @@ export async function getWardAcademicSummary(studentId: string) {
  * Financials (Fees & Wallet)
  */
 
-interface Invoice {
-    id: string;
-    description: string;
-    amount: number;
-    dueDate: string;
-    status: 'PAID' | 'PENDING' | 'OVERDUE';
-}
-
-const MOCK_INVOICES: Record<string, Invoice[]> = {
-    'ward-1': [
-        { id: 'inv-1', description: '2nd Term Tuition', amount: 450, dueDate: '2026-01-15', status: 'PENDING' },
-        { id: 'inv-2', description: 'Lab & Science Fee', amount: 50, dueDate: '2026-01-15', status: 'PAID' },
-    ]
-};
-
 export async function getWardInvoices(studentId: string) {
-    // In a real app, this would query a Transaction/Invoice model
-    return { success: true, data: MOCK_INVOICES[studentId] || [] };
+    return getStudentInvoices(studentId);
 }
 
 export async function payFee(studentId: string, invoiceId: string, amount: number) {

@@ -1,0 +1,65 @@
+{
+  "teachers": [],
+  "students": [
+    {
+      "id": "d307dd2e-6495-4a16-95f0-1f9744378ccb",
+      "userId": "cb9a50b8-3134-49c4-809b-4eefd58eea8c",
+      "classId": "860d701e-7c65-4bf3-8445-4c1bcfe83bfd",
+      "parentId": "a6053db5-7fb6-43a2-9fe1-c7c586517408",
+      "user": {
+        "name": "Jane Student"
+      }
+    }
+  ],
+  "classes": [
+    {
+      "id": "91f45f7e-f89b-4ac8-ad91-601546313313",
+      "name": "JSS 1A",
+      "teacherId": "be9a645f-bdd7-4c08-ac93-1024a076bd3b"
+    },
+    {
+      "id": "860d701e-7c65-4bf3-8445-4c1bcfe83bfd",
+      "name": "JSS 1 A",
+      "teacherId": "be9a645f-bdd7-4c08-ac93-1024a076bd3b"
+    }
+  ],
+  "users": [
+    {
+      "id": "dda71171-f1a4-4941-baf2-e6c4f4c20ef1",
+      "username": "admin",
+      "role": "ADMIN",
+      "teacherProfile": null
+    },
+    {
+      "id": "2f947128-a1d5-4df3-acc0-3635eadc0fbc",
+      "username": "teacher_john",
+      "role": "TEACHER",
+      "teacherProfile": {
+        "id": "be9a645f-bdd7-4c08-ac93-1024a076bd3b",
+        "userId": "2f947128-a1d5-4df3-acc0-3635eadc0fbc",
+        "classes": [
+          {
+            "id": "91f45f7e-f89b-4ac8-ad91-601546313313",
+            "name": "JSS 1A"
+          },
+          {
+            "id": "860d701e-7c65-4bf3-8445-4c1bcfe83bfd",
+            "name": "JSS 1 A"
+          }
+        ]
+      }
+    },
+    {
+      "id": "0d214c05-2d73-4fab-8daa-60978248e2dc",
+      "username": "parent_smith",
+      "role": "PARENT",
+      "teacherProfile": null
+    },
+    {
+      "id": "cb9a50b8-3134-49c4-809b-4eefd58eea8c",
+      "username": "student_jane",
+      "role": "STUDENT",
+      "teacherProfile": null
+    }
+  ]
+}

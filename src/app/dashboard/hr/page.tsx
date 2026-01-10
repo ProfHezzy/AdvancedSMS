@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,18 +11,68 @@ import {
     Clock,
     Banknote,
     TrendingUp,
-    AlertCircle
+    AlertCircle,
+    Loader2
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { getHRDashboardStats } from '@/actions/staff';
 
 export default function HRDashboardPage() {
-    const stats = [
-        { title: 'Total Staff', value: '142', change: '+5 this month', icon: Users, color: 'bg-blue-500' },
-        { title: 'Departments', value: '8', change: 'Fully staffed', icon: Briefcase, color: 'bg-purple-500' },
-        { title: 'On Leave', value: '3', change: 'Returning soon', icon: Calendar, color: 'bg-amber-500' },
-        { title: 'Payroll', value: 'Pending', change: 'Due in 3 days', icon: Banknote, color: 'bg-green-500' },
+    const [stats, setStats] = useState<any>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        fetchStats();
+    }, []);
+
+    async function fetchStats() {
+        setIsLoading(true);
+        const res = await getHRDashboardStats();
+        if (res.success && res.data) {
+            setStats(res.data);
+        }
+        setIsLoading(false);
+    }
+
+    const statCards = [
+        {
+            title: 'Total Staff',
+            value: stats?.totalStaff || '0',
+            change: 'Active employees',
+            icon: Users,
+            color: 'bg-blue-500'
+        },
+        {
+            title: 'Departments',
+            value: Object.keys(stats?.departmentCounts || {}).length || '0',
+            change: 'Active units',
+            icon: Briefcase,
+            color: 'bg-purple-500'
+        },
+        {
+            title: 'On Leave',
+            value: stats?.onLeave || '0',
+            change: 'Returning soon',
+            icon: Calendar,
+            color: 'bg-amber-500'
+        },
+        {
+            title: 'Payroll',
+            value: stats?.payrollStatus || 'Pending',
+            change: 'Due in 3 days',
+            icon: Banknote,
+            color: 'bg-green-500'
+        },
     ];
+
+    if (isLoading) {
+        return (
+            <div className="flex h-[80vh] items-center justify-center">
+                <Loader2 className="w-12 h-12 text-brand-600 animate-spin" />
+            </div>
+        );
+    }
 
     return (
         <div className="p-8 space-y-8 animate-fade-in text-gray-900">
@@ -39,15 +90,17 @@ export default function HRDashboardPage() {
                         <Clock className="w-4 h-4" />
                         Attendance Log
                     </Button>
-                    <Button className="h-12 px-6 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-black shadow-lg shadow-brand-600/20 gap-2 btn-shine">
-                        <UserPlus className="w-4 h-4" />
-                        Onboard Staff
-                    </Button>
+                    <Link href="/dashboard/hr/staff">
+                        <Button className="h-12 px-6 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-black shadow-lg shadow-brand-600/20 gap-2 btn-shine">
+                            <UserPlus className="w-4 h-4" />
+                            Manage Staff
+                        </Button>
+                    </Link>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {stats.map((stat, i) => {
+                {statCards.map((stat, i) => {
                     const Icon = stat.icon;
                     return (
                         <Card key={i} className="glass border-none shadow-soft hover:shadow-medium transition-all group overflow-hidden">
@@ -75,27 +128,28 @@ export default function HRDashboardPage() {
                 <Card className="lg:col-span-2 glass border-none shadow-soft overflow-hidden">
                     <CardHeader className="bg-brand-50/50 pb-4 border-b border-brand-50">
                         <div className="flex justify-between items-center">
-                            <CardTitle className="text-lg font-black text-gray-800 uppercase tracking-tight">Recent Activity</CardTitle>
-                            <Button variant="ghost" size="sm" className="text-xs font-bold text-brand-600">View All</Button>
+                            <CardTitle className="text-lg font-black text-gray-800 uppercase tracking-tight">Department Breakdown</CardTitle>
+                            <Link href="/dashboard/hr/staff">
+                                <Button variant="ghost" size="sm" className="text-xs font-bold text-brand-600">View Directory</Button>
+                            </Link>
                         </div>
                     </CardHeader>
-                    <CardContent className="p-0">
-                        {[
-                            { user: 'Sarah Connor', action: 'Applied for Leave', time: '2 mins ago', type: 'warning' },
-                            { user: 'James Bond', action: 'Clocked In', time: '15 mins ago', type: 'success' },
-                            { user: 'New Hire', action: 'Onboarding Completed', time: '1 hour ago', type: 'info' },
-                        ].map((activity, i) => (
-                            <div key={i} className="p-4 flex items-center justify-between border-b border-brand-50 last:border-0 hover:bg-brand-50/30 transition-colors">
+                    <CardContent className="p-6 space-y-4">
+                        {Object.entries(stats?.departmentCounts || {}).map(([role, count]: [string, any]) => (
+                            <div key={role} className="flex items-center justify-between group">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-600">
-                                        {activity.user.charAt(0)}
-                                    </div>
-                                    <div>
-                                        <p className="font-bold text-gray-800 text-sm">{activity.user}</p>
-                                        <p className="text-xs text-muted-foreground">{activity.action}</p>
-                                    </div>
+                                    <div className="w-2 h-2 rounded-full bg-brand-400 group-hover:scale-150 transition-all" />
+                                    <span className="font-bold text-gray-700 text-sm uppercase tracking-wider">{role}</span>
                                 </div>
-                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{activity.time}</span>
+                                <div className="flex items-center gap-4">
+                                    <div className="w-32 h-2 bg-gray-100 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full bg-brand-500 rounded-full"
+                                            style={{ width: `${(count / (stats?.totalStaff || 1)) * 100}%` }}
+                                        />
+                                    </div>
+                                    <span className="font-black text-gray-900 w-8 text-right">{count}</span>
+                                </div>
                             </div>
                         ))}
                     </CardContent>
@@ -109,7 +163,7 @@ export default function HRDashboardPage() {
                         <div>
                             <h3 className="text-2xl font-black">Performance Review</h3>
                             <p className="text-sm font-medium text-brand-100/80 mt-2">
-                                Q1 Reviews are pending for 12 staff members.
+                                Q1 Reviews are pending for some staff members.
                             </p>
                         </div>
                         <Button className="w-full bg-white text-brand-900 hover:bg-brand-50 font-black">

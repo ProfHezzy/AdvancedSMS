@@ -11,9 +11,17 @@ import {
     Search,
     MoreHorizontal
 } from 'lucide-react';
-import { getSubjects, createSubject } from '@/actions/admin';
+import { getSubjects, createSubject, getTeachers, assignSubjectToClasses, assignSubjectToTeachers } from '@/actions/admin';
+import { getAllClasses } from '@/actions/timetable';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import {
+    Check,
+    ChevronRight,
+    Loader2,
+    Users as UsersIcon,
+    Layers
+} from 'lucide-react';
 import {
     Dialog,
     DialogContent,
@@ -32,6 +40,15 @@ export default function AdminSubjectsPage() {
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [formData, setFormData] = useState({ name: '', code: '', coefficient: '1' });
 
+    // Mapping State
+    const [isMappingOpen, setIsMappingOpen] = useState(false);
+    const [selectedSubject, setSelectedSubject] = useState<any>(null);
+    const [allClasses, setAllClasses] = useState<any[]>([]);
+    const [allTeachers, setAllTeachers] = useState<any[]>([]);
+    const [tempAssignedClasses, setTempAssignedClasses] = useState<string[]>([]);
+    const [tempAssignedTeachers, setTempAssignedTeachers] = useState<string[]>([]);
+    const [isSavingMapping, setIsSavingMapping] = useState(false);
+
     useEffect(() => {
         fetchSubjects();
     }, []);
@@ -43,6 +60,12 @@ export default function AdminSubjectsPage() {
             setSubjects(res.data);
         }
         setIsLoading(false);
+    }
+
+    async function loadResources() {
+        const [c, t] = await Promise.all([getAllClasses(), getTeachers()]);
+        if (c.success) setAllClasses(c.data || []);
+        if (t.success) setAllTeachers(t.data || []);
     }
 
     const handleCreate = async () => {
@@ -61,6 +84,43 @@ export default function AdminSubjectsPage() {
         } else {
             toast.error('Failed to create subject');
         }
+    };
+
+    const openMapping = (subject: any) => {
+        setSelectedSubject(subject);
+        setTempAssignedClasses(subject.classes?.map((c: any) => c.id) || []);
+        setTempAssignedTeachers(subject.teachers?.map((t: any) => t.id) || []);
+        loadResources();
+        setIsMappingOpen(true);
+    };
+
+    const handleSaveMapping = async () => {
+        if (!selectedSubject) return;
+        setIsSavingMapping(true);
+
+        const res1 = await assignSubjectToClasses(selectedSubject.id, tempAssignedClasses);
+        const res2 = await assignSubjectToTeachers(selectedSubject.id, tempAssignedTeachers);
+
+        if (res1.success && res2.success) {
+            toast.success('Mapping updated successfully');
+            setIsMappingOpen(false);
+            fetchSubjects();
+        } else {
+            toast.error('Failed to update mapping');
+        }
+        setIsSavingMapping(false);
+    };
+
+    const toggleClass = (id: string) => {
+        setTempAssignedClasses(prev =>
+            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+        );
+    };
+
+    const toggleTeacher = (id: string) => {
+        setTempAssignedTeachers(prev =>
+            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+        );
     };
 
     return (
@@ -152,9 +212,20 @@ export default function AdminSubjectsPage() {
                                 <div className="w-12 h-12 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center text-brand-700 font-black shadow-inner group-hover:bg-brand-600 group-hover:text-white transition-all duration-300">
                                     <BookOpen className="w-5 h-5" />
                                 </div>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-brand-600">
-                                    <MoreHorizontal className="w-4 h-4" />
-                                </Button>
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        onClick={() => openMapping(sub)}
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-8 rounded-lg border-brand-100 text-brand-600 font-bold text-[10px] uppercase gap-1"
+                                    >
+                                        <Layers className="w-3 h-3" />
+                                        Map
+                                    </Button>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-brand-600">
+                                        <MoreHorizontal className="w-4 h-4" />
+                                    </Button>
+                                </div>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div>
@@ -185,6 +256,122 @@ export default function AdminSubjectsPage() {
                     </div>
                 )}
             </div>
+
+            {/* Mapping Dialog */}
+            <Dialog open={isMappingOpen} onOpenChange={setIsMappingOpen}>
+                <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle className="text-2xl font-black text-brand-800 tracking-tight uppercase">
+                            Assign Subject: {selectedSubject?.name}
+                        </DialogTitle>
+                        <DialogDescription>
+                            Configure which classes offer this subject and which teachers are assigned to it.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-6">
+                        {/* Classes Column */}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between border-b pb-2 border-brand-50">
+                                <h4 className="font-black text-gray-700 uppercase tracking-widest text-xs flex items-center gap-2">
+                                    <Layers className="w-4 h-4 text-brand-500" />
+                                    Classes
+                                </h4>
+                                <span className="text-[10px] font-bold px-2 py-0.5 bg-brand-50 text-brand-600 rounded-full">
+                                    {tempAssignedClasses.length} Selected
+                                </span>
+                            </div>
+                            <div className="max-h-[300px] overflow-y-auto pr-2 space-y-2">
+                                {allClasses.map(cls => (
+                                    <div
+                                        key={cls.id}
+                                        onClick={() => toggleClass(cls.id)}
+                                        className={cn(
+                                            "flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer group",
+                                            tempAssignedClasses.includes(cls.id)
+                                                ? "bg-brand-50 border-brand-200"
+                                                : "bg-white border-gray-100 hover:border-brand-100"
+                                        )}
+                                    >
+                                        <span className={cn(
+                                            "font-bold text-sm",
+                                            tempAssignedClasses.includes(cls.id) ? "text-brand-700" : "text-gray-600"
+                                        )}>
+                                            {cls.name}
+                                        </span>
+                                        <div className={cn(
+                                            "w-5 h-5 rounded-full border flex items-center justify-center transition-all",
+                                            tempAssignedClasses.includes(cls.id)
+                                                ? "bg-brand-600 border-brand-600 text-white"
+                                                : "border-gray-200 group-hover:border-brand-300"
+                                        )}>
+                                            {tempAssignedClasses.includes(cls.id) && <Check className="w-3 h-3" />}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Teachers Column */}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between border-b pb-2 border-brand-50">
+                                <h4 className="font-black text-gray-700 uppercase tracking-widest text-xs flex items-center gap-2">
+                                    <UsersIcon className="w-4 h-4 text-brand-500" />
+                                    Teachers
+                                </h4>
+                                <span className="text-[10px] font-bold px-2 py-0.5 bg-brand-50 text-brand-600 rounded-full">
+                                    {tempAssignedTeachers.length} Selected
+                                </span>
+                            </div>
+                            <div className="max-h-[300px] overflow-y-auto pr-2 space-y-2">
+                                {allTeachers.map(teacher => (
+                                    <div
+                                        key={teacher.id}
+                                        onClick={() => toggleTeacher(teacher.id)}
+                                        className={cn(
+                                            "flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer group",
+                                            tempAssignedTeachers.includes(teacher.id)
+                                                ? "bg-indigo-50 border-indigo-200"
+                                                : "bg-white border-gray-100 hover:border-indigo-100"
+                                        )}
+                                    >
+                                        <span className={cn(
+                                            "font-bold text-sm",
+                                            tempAssignedTeachers.includes(teacher.id) ? "text-indigo-700" : "text-gray-600"
+                                        )}>
+                                            {teacher.user.username}
+                                        </span>
+                                        <div className={cn(
+                                            "w-5 h-5 rounded-full border flex items-center justify-center transition-all",
+                                            tempAssignedTeachers.includes(teacher.id)
+                                                ? "bg-indigo-600 border-indigo-600 text-white"
+                                                : "border-gray-200 group-hover:border-indigo-300"
+                                        )}>
+                                            {tempAssignedTeachers.includes(teacher.id) && <Check className="w-3 h-3" />}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    <DialogFooter className="pt-6 border-t border-brand-50">
+                        <Button variant="ghost" onClick={() => setIsMappingOpen(false)}>Cancel</Button>
+                        <Button
+                            onClick={handleSaveMapping}
+                            disabled={isSavingMapping}
+                            className="bg-brand-600 hover:bg-brand-700 text-white font-black h-11 px-8 rounded-xl shadow-lg shadow-brand-600/20"
+                        >
+                            {isSavingMapping ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Saving...
+                                </>
+                            ) : 'Save Mapping'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

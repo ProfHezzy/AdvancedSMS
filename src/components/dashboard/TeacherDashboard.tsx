@@ -11,22 +11,25 @@ import {
     Plus,
     Calendar,
     Megaphone,
-    MessageSquare
+    MessageSquare,
+    Loader2
 } from 'lucide-react';
 
-const stats = [
-    { title: 'My Students', value: '124', icon: Users, color: 'text-blue-600', bg: 'bg-blue-100' },
-    { title: 'Total Subjects', value: '4', icon: BookOpen, color: 'text-purple-600', bg: 'bg-purple-100' },
-    { title: 'Pending Gradings', value: '18', icon: Clock, color: 'text-orange-600', bg: 'bg-orange-100' },
-    { title: 'Class Attendance', value: '94%', icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-100' },
-];
+export default function TeacherDashboard({ stats: dynamicStats, isLoading }: { stats?: any, isLoading?: boolean }) {
+    if (isLoading) {
+        return (
+            <div className="flex justify-center items-center h-96">
+                <Loader2 className="w-12 h-12 animate-spin text-brand-600" />
+            </div>
+        );
+    }
 
-const pendingGradings = [
-    { id: '1', student: 'John Doe', subject: 'Mathematics', type: 'Assignment 1', date: '2 hours ago' },
-    { id: '2', student: 'Jane Smith', subject: 'Mathematics', type: 'Algebra Quiz', date: '5 hours ago' },
-];
-
-export default function TeacherDashboard() {
+    const stats = [
+        { title: 'My Students', value: dynamicStats?.studentCount?.toString() || '0', icon: Users, color: 'text-blue-600', bg: 'bg-blue-100' },
+        { title: 'Total Subjects', value: dynamicStats?.subjectCount?.toString() || '0', icon: BookOpen, color: 'text-purple-600', bg: 'bg-purple-100' },
+        { title: 'Pending Gradings', value: dynamicStats?.pendingGradings?.toString() || '0', icon: Clock, color: 'text-orange-600', bg: 'bg-orange-100' },
+        { title: 'Class Attendance', value: `${dynamicStats?.attendanceRate || 0}%`, icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-100' },
+    ];
     return (
         <div className="space-y-8 animate-in fade-in duration-700 p-8">
             <div className="flex justify-between items-start">

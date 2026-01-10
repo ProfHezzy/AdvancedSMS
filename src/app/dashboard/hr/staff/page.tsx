@@ -101,44 +101,47 @@ export default function StaffDirectoryPage() {
                     Array(8).fill(0).map((_, i) => (
                         <Card key={i} className="h-64 rounded-3xl bg-gray-50 animate-pulse border-none" />
                     ))
-                ) : filteredStaff.map((person) => (
-                    <Card key={person.id} className="glass border-none shadow-soft hover:shadow-medium transition-all group overflow-hidden">
-                        <CardContent className="p-6 flex flex-col items-center text-center space-y-4">
-                            <div className="w-full flex justify-end">
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 group-hover:text-brand-600">
-                                    <MoreHorizontal className="w-4 h-4" />
-                                </Button>
-                            </div>
+                ) : filteredStaff.length > 0 ? (
+                    filteredStaff.map((person) => (
+                        <Card key={person.id} className="glass border-none shadow-soft hover:shadow-medium transition-all group overflow-hidden">
+                            <CardContent className="p-6 flex flex-col items-center text-center space-y-4">
+                                <div className="w-full flex justify-end">
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 group-hover:text-brand-600">
+                                        <MoreHorizontal className="w-4 h-4" />
+                                    </Button>
+                                </div>
 
-                            <Avatar className="w-24 h-24 border-4 border-white shadow-xl">
-                                <AvatarFallback className="bg-gradient-to-br from-brand-100 to-indigo-100 text-brand-700 text-2xl font-black">
-                                    {person.username.charAt(0).toUpperCase()}
-                                </AvatarFallback>
-                            </Avatar>
+                                <Avatar className="w-24 h-24 border-4 border-white shadow-xl">
+                                    <AvatarImage src={person.image} />
+                                    <AvatarFallback className="bg-gradient-to-br from-brand-100 to-indigo-100 text-brand-700 text-2xl font-black">
+                                        {(person.name || person.username).charAt(0).toUpperCase()}
+                                    </AvatarFallback>
+                                </Avatar>
 
-                            <div>
-                                <h3 className="text-lg font-black text-gray-900 truncate max-w-[200px]">{person.username}</h3>
-                                <Badge variant="secondary" className="mt-2 bg-brand-50 text-brand-700 hover:bg-brand-100 border-brand-100 font-bold">
-                                    {person.role}
-                                </Badge>
-                            </div>
+                                <div>
+                                    <h3 className="text-lg font-black text-gray-900 truncate max-w-[200px]">
+                                        {person.name || person.username}
+                                    </h3>
+                                    <Badge variant="secondary" className="mt-2 bg-brand-50 text-brand-700 hover:bg-brand-100 border-brand-100 font-bold">
+                                        {person.role}
+                                    </Badge>
+                                </div>
 
-                            <div className="w-full pt-4 border-t border-brand-50 flex justify-center gap-4">
-                                <Button variant="ghost" size="icon" className="rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100">
-                                    <Mail className="w-4 h-4" />
-                                </Button>
-                                <Button variant="ghost" size="icon" className="rounded-full bg-green-50 text-green-600 hover:bg-green-100">
-                                    <Phone className="w-4 h-4" />
-                                </Button>
-                                <Button variant="ghost" size="icon" className="rounded-full bg-purple-50 text-purple-600 hover:bg-purple-100">
-                                    <Briefcase className="w-4 h-4" />
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-                ))}
-
-                {filteredStaff.length === 0 && !isLoading && (
+                                <div className="w-full pt-4 border-t border-brand-50 flex justify-center gap-4">
+                                    <Button variant="ghost" size="icon" className="rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100">
+                                        <Mail className="w-4 h-4" />
+                                    </Button>
+                                    <Button variant="ghost" size="icon" className="rounded-full bg-green-50 text-green-600 hover:bg-green-100">
+                                        <Phone className="w-4 h-4" />
+                                    </Button>
+                                    <Button variant="ghost" size="icon" className="rounded-full bg-purple-50 text-purple-600 hover:bg-purple-100">
+                                        <Briefcase className="w-4 h-4" />
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))
+                ) : (
                     <div className="col-span-full py-20 flex flex-col items-center justify-center text-gray-400">
                         <Users className="w-16 h-16 mb-4 opacity-20" />
                         <p className="font-medium">No staff members found matching your criteria.</p>

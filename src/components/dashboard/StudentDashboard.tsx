@@ -10,36 +10,45 @@ import {
     Star,
     Target,
     Megaphone,
-    MessageSquare
+    MessageSquare,
+    Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-export default function StudentDashboard() {
+export default function StudentDashboard({ stats: dynamicStats, isLoading }: { stats?: any, isLoading?: boolean }) {
+    if (isLoading) {
+        return (
+            <div className="flex justify-center items-center h-96">
+                <Loader2 className="w-12 h-12 animate-spin text-brand-600" />
+            </div>
+        );
+    }
+
     const stats = [
         {
             title: 'Current GPA',
-            value: '3.8',
-            change: '+0.2 from last term',
+            value: dynamicStats?.gpa?.toString() || '0.0',
+            change: 'Overall average',
             icon: Star,
             color: 'from-amber-400 to-amber-500',
         },
         {
             title: 'Attendance',
-            value: '98%',
-            change: 'Excellent standing',
+            value: `${dynamicStats?.attendanceRate || 0}%`,
+            change: 'Attendance standing',
             icon: Clock,
             color: 'from-green-500 to-green-600',
         },
         {
             title: 'Assignments',
-            value: '12',
-            change: '3 due this week',
+            value: dynamicStats?.assignmentCount?.toString() || '0',
+            change: 'Pending items',
             icon: ClipboardCheck,
             color: 'from-blue-500 to-blue-600',
         },
         {
             title: 'Subjects',
-            value: '9',
+            value: dynamicStats?.subjectCount?.toString() || '0',
             change: 'Active this term',
             icon: BookOpen,
             color: 'from-purple-500 to-purple-600',

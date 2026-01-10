@@ -94,7 +94,12 @@ export async function getAuditLogs() {
 
 export async function getSessions() {
     try {
-        const sessions = await prisma.session.findMany({ orderBy: { startDate: 'desc' } });
+        const sessions = await prisma.session.findMany({
+            include: {
+                terms: true
+            },
+            orderBy: { name: 'desc' }
+        });
         return { success: true, data: sessions };
     } catch (error) {
         return { success: false, error: 'Failed to fetch sessions.' };
@@ -113,7 +118,14 @@ export async function createSession(data: any) {
 
 export async function getClasses() {
     try {
-        const classes = await prisma.class.findMany({ include: { teacher: { include: { user: true } } } });
+        const classes = await prisma.class.findMany({
+            include: {
+                teacher: { include: { user: true } },
+                _count: {
+                    select: { students: true }
+                }
+            }
+        });
         return { success: true, data: classes };
     } catch (error) {
         return { success: false, error: 'Failed to fetch classes.' };
@@ -122,20 +134,84 @@ export async function getClasses() {
 
 export async function createClass(data: any) {
     try {
-        await prisma.class.create({ data });
+        const createData = { ...data };
+        if (createData.teacherId === 'none') delete createData.teacherId;
+
+        await prisma.class.create({ data: createData });
         revalidatePath('/dashboard/admin/classes');
         return { success: true };
+    } catch (error: any) {
+        console.error('Create Class Error:', error);
+        return { success: false, error: error.message || 'Failed to create class.' };
+    }
+}
+
+export async function getTeachers() {
+    try {
+        const teachers = await prisma.teacherProfile.findMany({
+            include: {
+                user: true
+            }
+        });
+        return { success: true, data: teachers };
     } catch (error) {
-        return { success: false, error: 'Failed to create class.' };
+        return { success: false, error: 'Failed to fetch teachers.' };
     }
 }
 
 export async function getSubjects() {
     try {
-        const subjects = await prisma.subject.findMany();
+        const subjects = await prisma.subject.findMany({
+            include: {
+                classes: true,
+                teachers: { include: { user: true } },
+                _count: {
+                    select: {
+                        classes: true,
+                        teachers: true
+                    }
+                }
+            }
+        });
         return { success: true, data: subjects };
     } catch (error) {
         return { success: false, error: 'Failed to fetch subjects.' };
+    }
+}
+
+export async function assignSubjectToClasses(subjectId: string, classIds: string[]) {
+    try {
+        await prisma.subject.update({
+            where: { id: subjectId },
+            data: {
+                classes: {
+                    set: classIds.map(id => ({ id }))
+                }
+            }
+        });
+        revalidatePath('/dashboard/admin/subjects');
+        return { success: true };
+    } catch (error) {
+        console.error('Assign Subjects Error:', error);
+        return { success: false, error: 'Failed to assign subject to classes.' };
+    }
+}
+
+export async function assignSubjectToTeachers(subjectId: string, teacherIds: string[]) {
+    try {
+        await prisma.subject.update({
+            where: { id: subjectId },
+            data: {
+                teachers: {
+                    set: teacherIds.map(id => ({ id }))
+                }
+            }
+        });
+        revalidatePath('/dashboard/admin/subjects');
+        return { success: true };
+    } catch (error) {
+        console.error('Assign Teachers Error:', error);
+        return { success: false, error: 'Failed to assign subject to teachers.' };
     }
 }
 

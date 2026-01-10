@@ -1,33 +1,41 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, UserCog, Building2, TrendingUp, ShieldCheck, Activity } from 'lucide-react';
+import { Users, UserCog, Building2, TrendingUp, ShieldCheck, Activity, Loader2 } from 'lucide-react';
 
-export default function AdminDashboard() {
+export default function AdminDashboard({ stats: dynamicStats, isLoading }: { stats?: any, isLoading?: boolean }) {
+    if (isLoading) {
+        return (
+            <div className="flex justify-center items-center h-96">
+                <Loader2 className="w-12 h-12 animate-spin text-brand-600" />
+            </div>
+        );
+    }
+
     const stats = [
         {
             title: 'Institutional Size',
-            value: '2,847',
-            change: '+12% students',
+            value: dynamicStats?.institutionalSize?.toLocaleString() || '0',
+            change: 'Total students',
             icon: Building2,
             color: 'from-blue-600 to-indigo-600',
         },
         {
             title: 'Staff Count',
-            value: '142',
-            change: '4 pending approval',
+            value: dynamicStats?.staffCount?.toLocaleString() || '0',
+            change: 'Teachers & Support',
             icon: UserCog,
             color: 'from-purple-600 to-fuchsia-600',
         },
         {
             title: 'Financial Health',
-            value: '84.2%',
+            value: `${dynamicStats?.financialHealth || 0}%`,
             change: 'Fee collection rate',
             icon: TrendingUp,
             color: 'from-emerald-600 to-teal-600',
         },
         {
             title: 'System Security',
-            value: 'Active',
-            change: '0 incidents today',
+            value: dynamicStats?.activeIncidents === 0 ? 'Active' : 'Warning',
+            change: `${dynamicStats?.activeIncidents || 0} incidents today`,
             icon: ShieldCheck,
             color: 'from-rose-600 to-orange-600',
         },

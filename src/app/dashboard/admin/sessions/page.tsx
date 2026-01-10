@@ -9,15 +9,33 @@ import {
     CheckCircle2,
     Clock,
     Trash2,
-    CalendarDays
+    CalendarDays,
+    Loader2
 } from 'lucide-react';
 import { getSessions, createSession } from '@/actions/admin';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 export default function AdminSessionsPage() {
     const [sessions, setSessions] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
+
+    const [formData, setFormData] = useState({
+        name: '',
+        isCurrent: false
+    });
 
     useEffect(() => {
         fetchSessions();
@@ -32,9 +50,24 @@ export default function AdminSessionsPage() {
         setIsLoading(false);
     }
 
-    const handleCreate = () => {
-        toast.info('Opening session creation dialog...');
-        // In a real app, this would open a modal form
+    const handleCreate = async () => {
+        if (!formData.name) return toast.error('Session name is required');
+
+        setIsLoading(true);
+        const res = await createSession({
+            name: formData.name,
+            isCurrent: formData.isCurrent
+        });
+
+        if (res.success) {
+            toast.success('Session created successfully');
+            setIsCreateOpen(false);
+            setFormData({ name: '', isCurrent: false });
+            fetchSessions();
+        } else {
+            toast.error('Failed to create session');
+        }
+        setIsLoading(false);
     };
 
     return (
@@ -48,59 +81,89 @@ export default function AdminSessionsPage() {
                         Configure school years and term durations.
                     </p>
                 </div>
-                <Button
-                    className="h-12 px-6 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-black shadow-lg shadow-brand-600/20 gap-2 btn-shine"
-                    onClick={handleCreate}
-                >
-                    <Plus className="w-5 h-5" />
-                    New Session
-                </Button>
+
+                <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+                    <DialogTrigger asChild>
+                        <Button className="h-12 px-6 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-black shadow-lg shadow-brand-600/20 gap-2 btn-shine">
+                            <Plus className="w-5 h-5" />
+                            New Session
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                            <DialogTitle>Create New Session</DialogTitle>
+                            <DialogDescription>
+                                Add a new academic year (e.g. 2025/2026).
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="name">Session Name</Label>
+                                <Input
+                                    id="name"
+                                    placeholder="e.g. 2025/2026"
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    id="isCurrent"
+                                    checked={formData.isCurrent}
+                                    onChange={(e) => setFormData({ ...formData, isCurrent: e.target.checked })}
+                                    className="w-4 h-4 text-brand-600 rounded border-gray-300 focus:ring-brand-500"
+                                />
+                                <Label htmlFor="isCurrent">Set as Current Session</Label>
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button onClick={handleCreate} disabled={isLoading}>
+                                {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                                Save Session
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-6">
-                    {isLoading ? (
+                    {isLoading && sessions.length === 0 ? (
                         Array(3).fill(0).map((_, i) => (
                             <div key={i} className="h-32 rounded-3xl bg-brand-50/50 animate-pulse border border-brand-100" />
                         ))
                     ) : sessions.length > 0 ? (
-                        sessions.map((session, i) => (
+                        sessions.map((session) => (
                             <Card key={session.id} className="glass border-none shadow-soft hover:shadow-medium transition-all group overflow-hidden">
                                 <CardContent className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
                                     <div className="flex items-center gap-6">
                                         <div className={cn(
                                             "w-16 h-16 rounded-2xl flex items-center justify-center font-black text-2xl shadow-inner",
-                                            i === 0 ? "bg-brand-600 text-white" : "bg-brand-50 text-brand-300"
+                                            session.isCurrent ? "bg-brand-600 text-white" : "bg-brand-50 text-brand-300"
                                         )}>
                                             {session.name.substring(0, 4)}
                                         </div>
                                         <div>
                                             <div className="flex items-center gap-3 mb-1">
                                                 <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight">{session.name}</h3>
-                                                {i === 0 && (
+                                                {session.isCurrent && (
                                                     <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
                                                         <CheckCircle2 className="w-3 h-3" />
                                                         Active
                                                     </span>
                                                 )}
                                             </div>
-                                            <div className="flex items-center gap-4 text-sm font-bold text-muted-foreground">
-                                                <div className="flex items-center gap-1">
-                                                    <CalendarDays className="w-4 h-4" />
-                                                    Started: {new Date(session.startDate).toLocaleDateString()}
-                                                </div>
-                                                <div className="flex items-center gap-1">
-                                                    <Clock className="w-4 h-4" />
-                                                    Ends: {new Date(session.endDate).toLocaleDateString()}
-                                                </div>
-                                            </div>
+                                            <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
+                                                {session.terms?.length || 0} Terms Registered
+                                            </p>
                                         </div>
                                     </div>
                                     <div className="flex gap-2">
                                         <Button variant="outline" className="h-10 px-4 rounded-xl border-brand-100 text-brand-600 font-bold hover:bg-brand-50">
                                             Manage Terms
                                         </Button>
-                                        {i !== 0 && (
+                                        {!session.isCurrent && (
                                             <Button variant="outline" size="icon" className="h-10 w-10 border-rose-100 text-rose-400 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50">
                                                 <Trash2 className="w-4 h-4" />
                                             </Button>

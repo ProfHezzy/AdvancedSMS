@@ -119,6 +119,19 @@ export async function getTeacherSchedule(userId: string) {
  * Class Management
  */
 
+export async function getTerms() {
+    try {
+        const terms = await prisma.term.findMany({
+            include: { session: true },
+            orderBy: { name: 'asc' }
+        });
+        return { success: true, data: terms };
+    } catch (error) {
+        console.error('getTerms error:', error);
+        return { success: false, error: 'Failed to fetch terms.' };
+    }
+}
+
 export async function getClassList(classId: string) {
     try {
         const students = await prisma.studentProfile.findMany({
@@ -170,6 +183,18 @@ export async function getTeacherSubjects(userId: string) {
     }
 }
 
+export async function getTeacherProfileByUserId(userId: string) {
+    try {
+        const profile = await prisma.teacherProfile.findUnique({
+            where: { userId }
+        });
+        return { success: true, data: profile };
+    } catch (error) {
+        console.error('getTeacherProfileByUserId error:', error);
+        return { success: false, error: 'Failed to fetch teacher profile.' };
+    }
+}
+
 export async function getStudentProfile(userId: string) {
     try {
         const student = await prisma.studentProfile.findUnique({
@@ -183,6 +208,27 @@ export async function getStudentProfile(userId: string) {
     } catch (error) {
         console.error('Failed to fetch student profile:', error);
         return { success: false, error: 'Failed to retrieve profile.' };
+    }
+}
+
+export async function getParentProfile(userId: string) {
+    try {
+        const parent = await prisma.parentProfile.findUnique({
+            where: { userId },
+            include: {
+                user: true,
+                students: {
+                    include: {
+                        user: true,
+                        class: true
+                    }
+                }
+            }
+        });
+        return { success: true, data: parent };
+    } catch (error) {
+        console.error('Failed to fetch parent profile:', error);
+        return { success: false, error: 'Failed to retrieve parent profile.' };
     }
 }
 
@@ -246,17 +292,66 @@ export async function submitRemark(data: any) {
  * Scheme of Work
  */
 
-export async function getSchemesOfWork(teacherId: string) {
+export async function getSchemesOfWork(teacherUserId: string) {
     try {
-        // Mocking schemes
-        return {
-            success: true,
-            data: [
-                { id: '1', subject: 'Mathematics', term: '2nd Term', week: 1, topic: 'Algebraic Expressions', status: 'COMPLETED' },
-                { id: '2', subject: 'Mathematics', term: '2nd Term', week: 2, topic: 'Quadratic Equations', status: 'IN-PROGRESS' },
+        const schemes = await (prisma as any).schemeOfWork.findMany({
+            where: {
+                teacher: { userId: teacherUserId }
+            },
+            include: {
+                subject: true,
+                term: true
+            },
+            orderBy: [
+                { term: { name: 'desc' } },
+                { week: 'asc' }
             ]
-        };
+        });
+        return { success: true, data: schemes };
     } catch (error) {
-        return { success: false, error: 'Failed to fetch schemes.' };
+        console.error('getSchemesOfWork error:', error);
+        return { success: false, error: 'Failed to fetch schemes of work.' };
+    }
+}
+
+export async function upsertSchemeOfWork(data: {
+    id?: string;
+    subjectId: string;
+    teacherId: string;
+    termId: string;
+    week: number;
+    topic: string;
+    objectives?: string;
+    status: string;
+}) {
+    try {
+        if (data.id) {
+            await (prisma as any).schemeOfWork.update({
+                where: { id: data.id },
+                data: {
+                    week: data.week,
+                    topic: data.topic,
+                    objectives: data.objectives,
+                    status: data.status
+                }
+            });
+        } else {
+            await (prisma as any).schemeOfWork.create({
+                data: {
+                    subjectId: data.subjectId,
+                    teacherId: data.teacherId,
+                    termId: data.termId,
+                    week: data.week,
+                    topic: data.topic,
+                    objectives: data.objectives,
+                    status: data.status
+                }
+            });
+        }
+        revalidatePath('/dashboard/teacher/scheme-of-work');
+        return { success: true };
+    } catch (error) {
+        console.error('upsertSchemeOfWork error:', error);
+        return { success: false, error: 'Failed to save scheme of work.' };
     }
 }

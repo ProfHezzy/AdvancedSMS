@@ -13,6 +13,8 @@ model User {
   username  String   @unique
   email     String?  @unique
   password  String
+  name      String?
+  image     String?
   role      Role     @default(STUDENT)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -39,6 +41,7 @@ model StudentProfile {
   results     Result[]
   attendance  Attendance[]
   submissions Submission[]
+  feePayments FeePayment[]
 }
 
 model TeacherProfile {
@@ -57,6 +60,7 @@ model ParentProfile {
   user     User             @relation(fields: [userId], references: [id])
   students StudentProfile[]
   wallet   Wallet?
+  cards    SavedCard[]
 }
 
 model StaffProfile {
@@ -76,6 +80,7 @@ model Class {
   assessments   Assessment[]
   announcements Announcement[]
   timetable     TimetableEntry[]
+  fees          Fee[]
 }
 
 model Subject {
@@ -104,6 +109,7 @@ model Term {
   session   Session  @relation(fields: [sessionId], references: [id])
   isCurrent Boolean  @default(false)
   results   Result[]
+  fees      Fee[]
 }
 
 model Result {
@@ -200,14 +206,70 @@ model Wallet {
 }
 
 model Transaction {
-  id        String   @id @default(uuid())
-  walletId  String
-  wallet    Wallet   @relation(fields: [walletId], references: [id])
-  amount    Float
-  type      String // CREDIT, DEBIT
-  reference String   @unique
-  status    String // PENDING, SUCCESS, FAILED
-  createdAt DateTime @default(now())
+  id          String       @id @default(uuid())
+  walletId    String
+  wallet      Wallet       @relation(fields: [walletId], references: [id])
+  amount      Float
+  type        String // CREDIT, DEBIT
+  reference   String       @unique
+  status      String // PENDING, SUCCESS, FAILED
+  createdAt   DateTime     @default(now())
+  feePayments FeePayment[]
+}
+
+model SavedCard {
+  id                String        @id @default(uuid())
+  parentId          String
+  parent            ParentProfile @relation(fields: [parentId], references: [id])
+  authorizationCode String // Paystack authorization code
+  last4             String
+  brand             String // e.g. "visa", "mastercard"
+  expMonth          String
+  expYear           String
+  bank              String?
+  signature         String? // To prevent duplicate cards
+  email             String // Email attached to the auth code
+  isDefault         Boolean       @default(false)
+  createdAt         DateTime      @default(now())
+
+  @@unique([parentId, signature]) // Prevent saving same card multiple times for same user
+}
+
+model Fee {
+  id          String       @id @default(uuid())
+  title       String // e.g. "Tuition Fee", "Uniform", "Bus Fee"
+  description String?
+  amount      Float
+  mandatory   Boolean      @default(true)
+  termId      String
+  term        Term         @relation(fields: [termId], references: [id])
+  classId     String? // If null, applies to all classes (or specific logic)
+  class       Class?       @relation(fields: [classId], references: [id])
+  dueDate     DateTime?
+  payments    FeePayment[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model FeePayment {
+  id            String         @id @default(uuid())
+  studentId     String
+  student       StudentProfile @relation(fields: [studentId], references: [id])
+  feeId         String
+  fee           Fee            @relation(fields: [feeId], references: [id])
+  amountPaid    Float
+  status        PaymentStatus  @default(PARTIAL) // PENDING, PARTIAL, COMPLETED
+  transactionId String?
+  transaction   Transaction?   @relation(fields: [transactionId], references: [id])
+  paymentDate   DateTime       @default(now())
+
+  @@unique([studentId, feeId]) // One payment record per fee per student (can be updated for partial)
+}
+
+enum PaymentStatus {
+  PENDING
+  PARTIAL
+  COMPLETED
 }
 
 model Announcement {

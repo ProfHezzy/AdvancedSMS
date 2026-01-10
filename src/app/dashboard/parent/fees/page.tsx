@@ -1,195 +1,212 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import {
-    CreditCard,
-    Download,
-    Wallet,
-    ChevronRight,
-    CheckCircle2,
-    Clock,
-    AlertCircle,
-    ArrowUpRight,
-    TrendingUp,
-    FileText,
-    Receipt
-} from 'lucide-react';
-import { getWardInvoices, payFee } from '@/actions/parent';
-import { useSession } from 'next-auth/react';
-import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
+import { Suspense, useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { Wallet, CreditCard, Calendar, AlertCircle } from "lucide-react";
+import { getStudentFees, payFeeFromWallet } from "@/actions/fees";
+import { getParentProfile } from "@/actions/academic";
+import { format } from "date-fns";
 
-export default function ParentFeesPage({ searchParams }: { searchParams: { ward?: string } }) {
+export default function FeesPage() {
     const { data: session } = useSession();
-    const [invoices, setInvoices] = useState<any[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
-    const wardId = searchParams.ward || 'ward-1'; // Default or from params
+    const [fees, setFees] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [selectedChild, setSelectedChild] = useState<string | null>(null);
+    const [children, setChildren] = useState<any[]>([]);
+    const [paying, setPaying] = useState<string | null>(null); // feeId being paid
+    const [parentProfile, setParentProfile] = useState<any>(null);
 
     useEffect(() => {
-        fetchInvoices();
-    }, [wardId]);
-
-    async function fetchInvoices() {
-        setIsLoading(true);
-        const res = await getWardInvoices(wardId);
-        if (res.success && res.data) {
-            setInvoices(res.data);
+        if (session?.user?.id) {
+            fetchData();
         }
-        setIsLoading(false);
+    }, [session]);
+
+    async function fetchData() {
+        setLoading(true);
+        try {
+            const userId = session?.user?.id;
+            if (!userId) return;
+
+            const parentRes = await getParentProfile(userId);
+            if (parentRes.success && parentRes.data) {
+                setParentProfile(parentRes.data);
+                const wards = parentRes.data.students || []; // Note: Ensure 'students' is correct relation now
+                setChildren(wards);
+
+                if (wards.length > 0) {
+                    setSelectedChild(wards[0].id);
+                    fetchFees(wards[0].id);
+                } else {
+                    setLoading(false);
+                }
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error('Failed to load data');
+            setLoading(false);
+        }
     }
 
-    const handlePay = async (invoiceId: string, amount: number) => {
-        toast.promise(payFee(wardId, invoiceId, amount), {
-            loading: 'Processing payment...',
-            success: 'Fee paid successfully!',
-            error: 'Payment failed'
+    async function fetchFees(studentId: string) {
+        setLoading(true);
+        try {
+            const res = await getStudentFees(studentId);
+            if (res.success && res.data) {
+                setFees(res.data);
+            }
+        } catch (error) {
+            toast.error('Failed to fetch fees');
+        }
+        setLoading(false);
+    }
+
+    const handleChildChange = (childId: string) => {
+        setSelectedChild(childId);
+        fetchFees(childId);
+    };
+
+    const handlePay = async (fee: any) => {
+        if (!parentProfile?.wallet) {
+            // Should probably check wallet existence better, or rely on payFeeFromWallet error
+            // Actually currently we don't have wallet loaded in state here, assumed handled in backend
+        }
+
+        if (!confirm(`Pay ₦${(fee.amount - fee.amountPaid).toLocaleString()} for ${fee.title}?`)) return;
+
+        setPaying(fee.id);
+
+        // Ensure wallet exists, get ID. 
+        // We need wallet ID for the action. 
+        // Let's assume we can get it from an action or passed parent profile (if updated to include wallet)
+        // For now, let's fetch wallet ID if missing
+
+        let walletId = parentProfile?.wallet?.id;
+        if (!walletId) {
+            const { getOrCreateWallet } = await import('@/actions/wallet');
+            const wRes = await getOrCreateWallet(parentProfile.id);
+            if (wRes.success && wRes.data) {
+                walletId = wRes.data.id;
+            } else {
+                toast.error('Wallet not found. Please fund your wallet first.');
+                setPaying(null);
+                return;
+            }
+        }
+
+        const res = await payFeeFromWallet({
+            walletId,
+            studentId: selectedChild!,
+            feeId: fee.id,
+            amount: fee.amount - fee.amountPaid
         });
+
+        if (res.success) {
+            toast.success('Fee payment successful!');
+            fetchFees(selectedChild!);
+        } else {
+            toast.error(res.error || 'Payment failed');
+        }
+        setPaying(null);
     };
 
     return (
-        <div className="p-8 space-y-8 animate-fade-in">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-4xl font-black bg-gradient-to-r from-brand-600 to-brand-800 bg-clip-text text-transparent">
-                        School Fees & Wallet
-                    </h1>
-                    <p className="text-muted-foreground mt-2">
-                        Manage your school commitments and view payment history.
-                    </p>
-                </div>
-                <div className="flex gap-3">
-                    <Button variant="outline" className="h-12 px-6 rounded-xl border-brand-100 text-brand-700 font-bold gap-2">
-                        <Receipt className="w-4 h-4" />
-                        Transactions
-                    </Button>
-                    <Button className="h-12 px-6 rounded-xl bg-brand-600 hover:bg-brand-700 font-black shadow-lg shadow-brand-600/20 gap-2">
-                        <Wallet className="w-5 h-5" />
-                        Fund Wallet
-                    </Button>
-                </div>
+        <div className="space-y-6 max-w-5xl mx-auto p-6 pb-20">
+            <div>
+                <h1 className="text-2xl font-black tracking-tight text-slate-900">School Fees</h1>
+                <p className="text-slate-500 font-medium">View and pay outstanding fees for your wards</p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                {/* Wallet & Quick Stats */}
-                <div className="lg:col-span-1 space-y-6">
-                    <Card className="glass border-none shadow-soft text-white relative overflow-hidden group">
-                        <div className="absolute inset-0 bg-gradient-to-br from-brand-600 to-brand-800 -z-10" />
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-brand-100 text-[10px] uppercase tracking-widest font-black">Available Balance</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-4xl font-black">$1,240.50</div>
-                            <div className="flex items-center gap-2 mt-4 text-xs font-bold text-brand-100/80">
-                                <TrendingUp className="w-3.5 h-3.5" />
-                                Last funded: Dec 20, 2025
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="glass border-none shadow-soft overflow-hidden">
-                        <CardHeader className="bg-brand-50/50">
-                            <CardTitle className="text-xs font-black text-brand-800 uppercase tracking-widest">Payment Breakdown</CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-6 space-y-4">
-                            <div className="flex items-center justify-between">
-                                <span className="text-xs font-bold text-gray-500">Tuition</span>
-                                <span className="text-sm font-black text-gray-900">$450.00</span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <span className="text-xs font-bold text-gray-500">Science Lab</span>
-                                <span className="text-sm font-black text-gray-900">$50.00</span>
-                            </div>
-                            <div className="flex items-center justify-between border-t border-brand-50 pt-4">
-                                <span className="text-xs font-black text-brand-600">Total Outstanding</span>
-                                <span className="text-sm font-black text-rose-600">$450.00</span>
-                            </div>
-                        </CardContent>
-                    </Card>
+            {/* Child Selector */}
+            {children.length > 0 && (
+                <div className="flex gap-2 overflow-x-auto pb-2">
+                    {children.map(child => (
+                        <Button
+                            key={child.id}
+                            onClick={() => handleChildChange(child.id)}
+                            variant={selectedChild === child.id ? "default" : "outline"}
+                            className="rounded-full"
+                        >
+                            {child.user?.name || 'Student'}
+                        </Button>
+                    ))}
                 </div>
+            )}
 
-                {/* Invoices List */}
-                <div className="lg:col-span-3 space-y-6">
-                    <Card className="glass border-none shadow-soft overflow-hidden">
-                        <CardHeader className="border-b border-brand-50/50 pb-6">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <CardTitle className="text-xl font-black">Active Invoices</CardTitle>
-                                    <CardDescription>Termly disbursements for Alice Johnson</CardDescription>
-                                </div>
-                                <Button variant="ghost" className="text-brand-600 font-bold gap-2">
-                                    <FileText className="w-4 h-4" />
-                                    Download Statement
-                                </Button>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                            {isLoading ? (
-                                <div className="p-20 text-center animate-pulse font-black text-brand-200">
-                                    SYNCHRONIZING FINANCIALS...
-                                </div>
-                            ) : (
-                                <div className="divide-y divide-brand-50/50">
-                                    {invoices.map((inv, idx) => (
-                                        <div
-                                            key={inv.id}
-                                            className="group flex flex-col md:flex-row md:items-center gap-6 p-6 hover:bg-brand-50/10 transition-all"
-                                        >
-                                            <div className="w-12 h-12 rounded-xl bg-brand-50 flex items-center justify-center text-brand-600 font-black border border-brand-100 shadow-inner group-hover:scale-110 transition-transform">
-                                                <Receipt className="w-6 h-6" />
-                                            </div>
+            {children.length === 0 && !loading && (
+                <div className="text-center py-10 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                    <p className="text-slate-500">No wards linked to your profile.</p>
+                </div>
+            )}
 
-                                            <div className="flex-1 space-y-1">
-                                                <div className="flex items-center gap-2 font-black uppercase text-[10px] tracking-widest">
-                                                    <span className={cn(
-                                                        inv.status === 'PAID' ? "text-green-600" : "text-rose-500"
-                                                    )}>{inv.status}</span>
-                                                    <span className="text-gray-300">•</span>
-                                                    <span className="text-gray-400">Due: {new Date(inv.dueDate).toLocaleDateString()}</span>
-                                                </div>
-                                                <h3 className="text-lg font-black text-gray-900 group-hover:text-brand-700 transition-colors">
-                                                    {inv.description}
-                                                </h3>
-                                                <p className="text-sm font-bold text-gray-500">Invoice ID: {inv.id.toUpperCase()}</p>
-                                            </div>
-
-                                            <div className="w-full md:w-auto flex flex-col md:items-end gap-3">
-                                                <div className="text-2xl font-black text-gray-900">${inv.amount.toFixed(2)}</div>
-                                                {inv.status === 'PENDING' ? (
-                                                    <Button
-                                                        className="w-full md:w-auto h-11 px-8 rounded-xl bg-brand-600 hover:bg-brand-700 font-black shadow-lg shadow-brand-600/20 gap-2 btn-shine"
-                                                        onClick={() => handlePay(inv.id, inv.amount)}
-                                                    >
-                                                        Pay Now
-                                                        <ChevronRight className="w-4 h-4" />
-                                                    </Button>
-                                                ) : (
-                                                    <div className="flex items-center gap-2 text-green-600 font-black bg-green-50 px-4 py-2 rounded-xl border border-green-100 text-xs">
-                                                        <CheckCircle2 className="w-4 h-4" />
-                                                        Payment Confirmed
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    <div className="p-6 rounded-3xl bg-rose-50 border border-rose-100 flex items-start gap-4">
-                        <AlertCircle className="w-6 h-6 text-rose-600 shrink-0 mt-1" />
-                        <div>
-                            <p className="font-black text-rose-900">Late Payment Warning</p>
-                            <p className="text-sm font-medium text-rose-700 mt-1">
-                                Invoices overdue by more than 30 days attract a 5% institutional maintenance charge.
-                                Please ensure all balances are settled before the start of the final exams.
-                            </p>
+            {loading ? (
+                <div className="space-y-4">
+                    {[1, 2, 3].map(i => (
+                        <div key={i} className="h-24 bg-slate-100 rounded-xl animate-pulse" />
+                    ))}
+                </div>
+            ) : (
+                <div className="grid gap-4">
+                    {fees.length === 0 ? (
+                        <div className="p-8 text-center bg-white rounded-xl border border-slate-100 shadow-sm">
+                            <AlertCircle className="w-10 h-10 text-green-500 mx-auto mb-3" />
+                            <p className="text-slate-600 font-medium">No active fees for this term!</p>
                         </div>
-                    </div>
+                    ) : (
+                        fees.map(fee => (
+                            <Card key={fee.id} className="border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                                <CardContent className="p-5 flex flex-col md:flex-row justify-between items-center gap-4">
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <h3 className="font-bold text-lg text-slate-800">{fee.title}</h3>
+                                            {fee.mandatory && <Badge variant="secondary" className="text-xs">Mandatory</Badge>}
+                                        </div>
+                                        <p className="text-slate-500 text-sm mb-2">{fee.description || 'School Fee'}</p>
+                                        <div className="flex items-center gap-4 text-sm text-slate-500">
+                                            <span className="flex items-center gap-1">
+                                                <Calendar className="w-4 h-4" />
+                                                Due: {fee.dueDate ? format(new Date(fee.dueDate), 'MMM d, yyyy') : 'N/A'}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="text-right">
+                                        <div className="mb-2">
+                                            <p className="text-sm text-slate-400 font-medium">Amount Due</p>
+                                            <p className="text-2xl font-black text-slate-900">
+                                                ₦{(fee.amount - fee.amountPaid).toLocaleString()}
+                                            </p>
+                                            {fee.amountPaid > 0 && (
+                                                <p className="text-xs text-green-600 font-medium">
+                                                    Paid: ₦{fee.amountPaid.toLocaleString()}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        {fee.status === 'COMPLETED' || fee.status === 'PAID' ? (
+                                            <Button disabled className="bg-green-100 text-green-700 hover:bg-green-100 border-green-200">
+                                                Paid
+                                            </Button>
+                                        ) : (
+                                            <Button
+                                                onClick={() => handlePay(fee)}
+                                                disabled={paying === fee.id}
+                                                className="bg-brand-600 hover:bg-brand-700 w-full md:w-auto"
+                                            >
+                                                {paying === fee.id ? 'Processing...' : 'Pay Now'}
+                                            </Button>
+                                        )}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))
+                    )}
                 </div>
-            </div>
+            )}
         </div>
     );
 }

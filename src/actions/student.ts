@@ -1,6 +1,7 @@
 'use server';
 
 import prisma from '@/lib/prisma';
+import { calculateCGPA } from '@/lib/grade-calculator';
 
 export async function getStudentResults(studentId: string) {
     try {
@@ -23,6 +24,43 @@ export async function getStudentResults(studentId: string) {
     }
 }
 
+/**
+ * Get student results for a specific term
+ */
+export async function getStudentResultsByTerm(studentId: string, termId: string) {
+    try {
+        const results = await prisma.result.findMany({
+            where: { studentId, termId },
+            include: {
+                subject: true,
+                term: {
+                    include: { session: true }
+                }
+            },
+            orderBy: {
+                subject: { name: 'asc' }
+            }
+        });
+
+        // Calculate CGPA using our utility
+        const cgpa = calculateCGPA(
+            results.map(r => ({
+                total: r.total,
+                coefficient: r.subject.coefficient
+            }))
+        );
+
+        return {
+            success: true,
+            data: results,
+            cgpa
+        };
+    } catch (error) {
+        console.error('Failed to fetch student results:', error);
+        return { success: false, error: 'Failed to fetch results.' };
+    }
+}
+
 export async function getStudentPerformanceStats(studentId: string) {
     try {
         const results = await prisma.result.findMany({
@@ -31,27 +69,21 @@ export async function getStudentPerformanceStats(studentId: string) {
                 total: true,
                 grade: true,
                 subject: {
-                    select: { name: true }
+                    select: { name: true, coefficient: true }
                 }
             }
         });
 
-        // Simple GPA calculation (4.0 scale)
-        const gradeToPoints: Record<string, number> = {
-            'A': 4.0, 'B': 3.0, 'C': 2.0, 'D': 1.0, 'E': 0.5, 'F': 0.0
-        };
-
-        let totalPoints = 0;
-        results.forEach(r => {
-            if (r.grade) {
-                totalPoints += gradeToPoints[r.grade] || 0;
-            }
-        });
-
-        const gpa = results.length > 0 ? (totalPoints / results.length).toFixed(2) : '0.00';
+        // Use our grade calculator utility
+        const cgpa = calculateCGPA(
+            results.map(r => ({
+                total: r.total,
+                coefficient: r.subject.coefficient
+            }))
+        );
 
         return {
-            gpa: parseFloat(gpa),
+            gpa: cgpa,
             totalSubjects: results.length,
             results: results.map(r => ({
                 subject: r.subject.name,
